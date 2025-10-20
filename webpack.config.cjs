@@ -26,7 +26,7 @@ const frontendConfig = {
     ...commonConfig,
     name: 'frontend',
     entry: {
-      index: './src/index.js',
+      index: './webXR/index.js',
     },
     output: {
       filename: '[name].bundle.js',
@@ -51,14 +51,14 @@ const frontendConfig = {
       }),
       
       new HtmlWebpackPlugin({
-        template: './src/index.html',
+        template: './webXR/index.html',
         filename: 'index.html',
         chunks: ['index']
       }),
 
       new CopyPlugin({
         patterns: [
-          { from: 'src/assets', to: 'assets' },
+          { from: 'webXR/assets', to: 'assets' },
         ],
       }),
       

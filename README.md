@@ -43,7 +43,7 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
     For example, 10.21.18.95 is my IP address. 
 
 3. **Navigate to the example**:
-    To navigate to the scene, go to your browser and type: https://your-ip-address:8081/.
+    To navigate to the scene, go to your browser (either on laptop or XR headset) and type: https://your-ip-address:8081/.
 
 ## Install Immersive Web Emulator extension
 Navigate to: https://chromewebstore.google.com/detail/immersive-web-emulator/cgffilbpcibhmcfbgggfhfolhkfbhmik?hl=en&pli=1 to install the extension for your Chrome browser.

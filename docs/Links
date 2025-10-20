@@ -13,3 +13,27 @@
 
     4.1 Unity Quest Camera Passthrough
         Link: https://github.com/oculus-samples/Unity-PassthroughCameraApiSamples
+
+5. General Architecture Design
+
+    5.1 FrontEnd WebXR version & Unity version
+        ┌─────────────────────────────────────────┐
+        │         FRONTEND (Different)            │
+        ├─────────────────────────────────────────┤
+        │  WebXR (Three.js + JavaScript)          │
+        │  OR                                     │
+        │  Unity (C# + XR Toolkit)                │
+        └─────────────────────────────────────────┘
+                            ↕ 
+                WebSocket/HTTP API
+                            ↕
+        ┌─────────────────────────────────────────┐
+        │    BACKEND (Python)                     │
+        ├─────────────────────────────────────────┤
+        │  Multi-Agent System:                    │
+        │  • Language Agent (LLM + Decider)       │
+        │  • Scene Agent (layout reasoning)       │
+        │  • Asset Agent (object placement)       │
+        │  • Verification Agent (validation)      │
+        │  • Code Agent (generates instructions)  │
+        └─────────────────────────────────────────┘
