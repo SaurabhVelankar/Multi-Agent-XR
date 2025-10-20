@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="./webXR/assets/images/project-title-image.png" />
+    <img src="./docs/images/project-title-image.png" />
 </p>
 
 ## Multi-Agent-XR
