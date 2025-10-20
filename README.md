@@ -25,11 +25,11 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
 1. **Open the terminal in the root project folder**:
     if you just want to open and test the backend run
     ```bash
-    npm run dev
+    npm run start-server
     ```
     if you just want to open and test the frontend run
     ```bash
-    npm run start-server
+    npm run dev
     ```
     if you want to open the frontend and backend at the same time to see the whole workflow run
     ```bash

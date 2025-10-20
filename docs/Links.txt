@@ -37,3 +37,23 @@
         │  • Verification Agent (validation)      │
         │  • Code Agent (generates instructions)  │
         └─────────────────────────────────────────┘
+    
+    5.2 BackEnd Structure
+        Multi-Agent-XR/
+            ├── webXR/              # Frontend
+            │   ├── index.js
+            │   ├── init.js
+            │   └── assets/
+            ├── backend/            # Python backend
+            │   ├── main.py         # FastAPI server
+            │   ├── requirements.txt
+            │   └── agents/
+            │       ├── __init__.py
+            │       ├── language_agent.py
+            │       ├── scene_agent.py
+            │       ├── asset_agent.py
+            │       ├── verification_agent.py
+            │       └── code_agent.py
+            ├── server/             # OLD: Can delete this Node.js folder
+            ├── package.json
+            └── webpack.config.cjs
