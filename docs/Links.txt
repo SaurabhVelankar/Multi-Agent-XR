@@ -49,11 +49,11 @@
             │   ├── requirements.txt
             │   └── agents/
             │       ├── __init__.py
-            │       ├── language_agent.py
-            │       ├── scene_agent.py
-            │       ├── asset_agent.py
-            │       ├── verification_agent.py
-            │       └── code_agent.py
+            │       ├── languageAgent.py
+            │       ├── sceneAgent.py
+            │       ├── assetAgent.py
+            │       ├── verificationAgent.py
+            │       └── codeAgent.py
             ├── server/             # OLD: Can delete this Node.js folder
             ├── package.json
             └── webpack.config.cjs

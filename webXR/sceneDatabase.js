@@ -1,0 +1,317 @@
+/**
+ * Scene Database for Multi-Agent VR System
+ */
+
+export const sceneDatabase = {
+    metadata: {
+      sceneName: "dining_room",
+      sceneType: "interior",
+      bounds: {
+        min: { x: -1, y: -1, z: -2.5 },
+        max: { x: 1, y: 0.5, z: -0.5 }
+      },
+      userSpawnPoint: { x: 0, y: 0, z: 0 }
+    },
+  
+    // Structural elements (walls, floor, ceiling)
+    structure: {
+      floor: {
+        id: "floor_01",
+        type: "floor",
+        geometry: { width: 6, height: 6 },
+        position: { x: 0, y: -1, z: -1.5 },
+        rotation: { x: -Math.PI / 2, y: 0, z: 0 },
+        scale: { x: 1/3, y: 1/3, z: 1/3 },
+        texture: "assets/textures/wood-floor-texture.png",
+        material: "standard"
+      },
+      
+      walls: [
+        {
+          id: "wall_left",
+          type: "wall",
+          geometry: { width: 6, height: 3 },
+          position: { x: -1, y: -0.5, z: -1.5 },
+          rotation: { x: 0, y: Math.PI / 2, z: 0 },
+          scale: { x: 1/3, y: 1/3, z: 1/3 },
+          texture: "assets/textures/brick.png",
+          material: "standard"
+        },
+        {
+          id: "wall_back",
+          type: "wall",
+          geometry: { width: 6, height: 3 },
+          position: { x: 0, y: -0.5, z: -2.5 },
+          rotation: { x: 0, y: 0, z: 0 },
+          scale: { x: 1/3, y: 1/3, z: 1/3 },
+          texture: "assets/textures/brick.png",
+          material: "standard"
+        },
+        {
+          id: "wall_right",
+          type: "wall",
+          geometry: { width: 6, height: 3 },
+          position: { x: 1, y: -0.5, z: -1.5 },
+          rotation: { x: 0, y: Math.PI / 2, z: 0 },
+          scale: { x: 1/3, y: 1/3, z: 1/3 },
+          texture: "assets/textures/brick.png",
+          material: "standard"
+        }
+      ]
+    },
+  
+    // Interactive objects that can be manipulated by agents
+    objects: [
+      {
+        id: "table_01",
+        name: "table",
+        category: "furniture",
+        subcategory: "surface",
+        modelPath: "assets/gltf-glb-models/table/Table.gltf",
+        position: { x: 0, y: -1, z: -1.5 },
+        rotation: { x: 0, y: 0, z: 0 },
+        scale: { x: 1/3, y: 1/3, z: 1/3 },
+        boundingBox: {
+          min: { x: -0.3, y: -1, z: -1.8 },
+          max: { x: 0.3, y: -0.7, z: -1.2 }
+        },
+        properties: {
+          movable: true,
+          interactive: true,
+          canPlaceOn: true,
+          weight: "medium"
+        },
+        spatialRelations: {
+          on: "floor_01",
+          near: ["chair_01", "chair_02", "lamp_01"]
+        }
+      },
+      
+      {
+        id: "chair_01",
+        name: "chair",
+        category: "furniture",
+        subcategory: "seating",
+        modelPath: "assets/gltf-glb-models/chair/chair.gltf",
+        position: { x: 0.4, y: -1, z: -1.5 },
+        rotation: { x: 0, y: -Math.PI / 2, z: 0 },
+        scale: { x: 0.005, y: 0.005, z: 0.005 },
+        boundingBox: {
+          min: { x: 0.3, y: -1, z: -1.6 },
+          max: { x: 0.5, y: -0.5, z: -1.4 }
+        },
+        properties: {
+          movable: true,
+          interactive: true,
+          canSitOn: true,
+          weight: "light"
+        },
+        spatialRelations: {
+          on: "floor_01",
+          rightOf: "table_01",
+          facing: "left"
+        }
+      },
+  
+      {
+        id: "chair_02",
+        name: "chair",
+        category: "furniture",
+        subcategory: "seating",
+        modelPath: "assets/gltf-glb-models/chair/chair.gltf",
+        position: { x: -0.3, y: -1, z: -1.8 },
+        rotation: { x: 0, y: Math.PI / 3, z: 0 },
+        scale: { x: 0.005, y: 0.005, z: 0.005 },
+        boundingBox: {
+          min: { x: -0.4, y: -1, z: -1.9 },
+          max: { x: -0.2, y: -0.5, z: -1.7 }
+        },
+        properties: {
+          movable: true,
+          interactive: true,
+          canSitOn: true,
+          weight: "light"
+        },
+        spatialRelations: {
+          on: "floor_01",
+          leftOf: "table_01",
+          facing: "table_01"
+        }
+      },
+  
+      {
+        id: "lamp_01",
+        name: "lamp",
+        category: "furniture",
+        subcategory: "lighting",
+        modelPath: "assets/gltf-glb-models/lamp/lamp.glb",
+        position: { x: 0.3, y: -1, z: -1.2 },
+        rotation: { x: 0, y: 0, z: 0 },
+        scale: { x: 0.025, y: 0.025, z: 0.025 },
+        boundingBox: {
+          min: { x: 0.25, y: -1, z: -1.25 },
+          max: { x: 0.35, y: -0.6, z: -1.15 }
+        },
+        properties: {
+          movable: true,
+          interactive: true,
+          canTurnOn: true,
+          weight: "light"
+        },
+        spatialRelations: {
+          on: "table_01",
+          near: "table_01"
+        }
+      },
+  
+      {
+        id: "stool_01",
+        name: "wooden stool",
+        category: "furniture",
+        subcategory: "seating",
+        modelPath: "assets/gltf-glb-models/wooden_stool/wooden_stool.gltf",
+        position: { x: -0.7, y: -1, z: -2 },
+        rotation: { x: 0, y: 0, z: 0 },
+        scale: { x: 0.003, y: 0.003, z: 0.003 },
+        boundingBox: {
+          min: { x: -0.75, y: -1, z: -2.05 },
+          max: { x: -0.65, y: -0.6, z: -1.95 }
+        },
+        properties: {
+          movable: true,
+          interactive: true,
+          canSitOn: true,
+          weight: "light"
+        },
+        spatialRelations: {
+          on: "floor_01",
+          leftOf: "chair_02",
+          near: "wall_back"
+        }
+      },
+  
+      {
+        id: "scooter_01",
+        name: "scooter",
+        category: "vehicle",
+        subcategory: "personal_transport",
+        modelPath: "assets/gltf-glb-models/scooter/scooter.glb",
+        position: { x: -0.5, y: -1, z: -1 },
+        rotation: { x: 0, y: 2 * Math.PI / 3, z: 0 },
+        scale: { x: 0.008, y: 0.008, z: 0.008 },
+        boundingBox: {
+          min: { x: -0.6, y: -1, z: -1.1 },
+          max: { x: -0.4, y: -0.7, z: -0.9 }
+        },
+        properties: {
+          movable: true,
+          interactive: true,
+          canRide: false,
+          weight: "medium"
+        },
+        spatialRelations: {
+          on: "floor_01",
+          leftOf: "table_01",
+          near: "wall_left"
+        }
+      }
+    ],
+  
+    // Lighting setup
+    lighting: [
+      {
+        id: "ambient_light",
+        type: "ambient",
+        color: 0xffffff,
+        intensity: 0.5
+      },
+      {
+        id: "directional_light",
+        type: "directional",
+        color: 0xffffff,
+        intensity: 0.8,
+        position: { x: 2, y: 3, z: 1 }
+      }
+    ]
+  };
+  
+  
+  /**
+   * Helper functions for agents to query the scene
+   */
+  
+  export class SceneQuery {
+    constructor(database) {
+      this.db = database;
+    }
+  
+    // Get object by ID
+    getObjectById(id) {
+      return this.db.objects.find(obj => obj.id === id);
+    }
+  
+    // Get objects by name
+    getObjectsByName(name) {
+      return this.db.objects.filter(obj => 
+        obj.name.toLowerCase().includes(name.toLowerCase())
+      );
+    }
+  
+    // Get objects by category
+    getObjectsByCategory(category) {
+      return this.db.objects.filter(obj => obj.category === category);
+    }
+  
+    // Find objects near a position
+    getObjectsNearPosition(position, radius = 1.0) {
+      return this.db.objects.filter(obj => {
+        const dx = obj.position.x - position.x;
+        const dy = obj.position.y - position.y;
+        const dz = obj.position.z - position.z;
+        const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        return distance <= radius;
+      });
+    }
+  
+    // Get spatial relationships
+    getSpatialRelations(objectId) {
+      const obj = this.getObjectById(objectId);
+      return obj ? obj.spatialRelations : null;
+    }
+  
+    // Get all movable objects
+    getMovableObjects() {
+      return this.db.objects.filter(obj => obj.properties.movable);
+    }
+  
+    // Update object position (for agents to modify)
+    updateObjectPosition(id, newPosition) {
+      const obj = this.getObjectById(id);
+      if (obj) {
+        obj.position = { ...obj.position, ...newPosition };
+        return true;
+      }
+      return false;
+    }
+  
+    // Add new object (for asset agent)
+    addObject(objectData) {
+      this.db.objects.push(objectData);
+      return objectData.id;
+    }
+  
+    // Remove object
+    removeObject(id) {
+      const index = this.db.objects.findIndex(obj => obj.id === id);
+      if (index !== -1) {
+        this.db.objects.splice(index, 1);
+        return true;
+      }
+      return false;
+    }
+  
+    // Get scene bounds for spatial validation
+    getSceneBounds() {
+      return this.db.metadata.bounds;
+    }
+  }
