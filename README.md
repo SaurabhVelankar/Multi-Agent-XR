@@ -23,7 +23,7 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
 
 ## Open the project:
 1. **Open the terminal in the root project folder**:
-    if you just want to open and test the backend run
+    if you just want to open and test the backend run (this is abandoned since I decide to switch to python backend, but the backend activation will be updated soon)
     ```bash
     npm run start-server
     ```
@@ -38,7 +38,7 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
 
 2. **Check your local IP address by running**:
     ```bash
-    ifconfig
+    ifconfig | grep "inet " | grep -v 127.0.0.1
     ```
     For example, 10.21.18.95 is my IP address. 
 
@@ -49,4 +49,4 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
 Navigate to: https://chromewebstore.google.com/detail/immersive-web-emulator/cgffilbpcibhmcfbgggfhfolhkfbhmik?hl=en&pli=1 to install the extension for your Chrome browser.
 
 ## Relevant reading resources
-To understand the idea of the whole project, go to *docs* folder and find *Research Proposal v1.pdf*. To find related articles, go to *Articles* folder under *docs*. The *Links* file contains links to some websites that I think useful to the development of this project.
+To understand the idea of the whole project, go to *docs* folder and find *Research Proposal v1.pdf*. To find related articles, go to *Articles* folder under *docs*. The *note* file contains links to some websites that I think useful to the development of this project.

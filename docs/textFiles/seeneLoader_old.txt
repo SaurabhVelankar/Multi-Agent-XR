@@ -1,7 +1,5 @@
-/**
- * Scene Database for Multi-Agent VR System
- */
-
+/*
+// version 2
 export const sceneDatabase = {
     metadata: {
       sceneName: "dining_room",
@@ -236,9 +234,8 @@ export const sceneDatabase = {
   };
   
   
-  /**
-   * Helper functions for agents to query the scene
-   */
+  // Helper functions for agents to query the scene
+  
   
   export class SceneQuery {
     constructor(database) {
@@ -315,3 +312,4 @@ export const sceneDatabase = {
       return this.db.metadata.bounds;
     }
   }
+*/
