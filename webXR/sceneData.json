@@ -216,13 +216,13 @@
       "id": "ambient_light",
       "type": "ambient",
       "color": 16777215,
-      "intensity": 0.5
+      "intensity": 0.0
     },
     {
       "id": "directional_light",
       "type": "directional",
       "color": 16777215,
-      "intensity": 0.8,
+      "intensity": 0.0,
       "position": { "x": 2, "y": 3, "z": 1 }
     }
   ]

@@ -51,10 +51,10 @@
             ├── backend/            # Python backend
             │   ├── main.py         # FastAPI server
             │   ├── requirements.txt
-            |   ├── __init__.js
-            |   ├── database.js
-            |   ├── memory.js
-            |   ├── orchestrator.js
+            |   ├── __init__.py
+            |   ├── database.py
+            |   ├── memory.py
+            |   ├── orchestrator.py
             │   └── agents/
             │       ├── languageAgent.py
             │       ├── sceneAgent.py

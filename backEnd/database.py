@@ -8,7 +8,7 @@
 
 import json
 from typing import Dict, List, Optional, Tuple
-from math import float
+from pathlib import Path
 
 class Database:
     """
@@ -16,16 +16,16 @@ class Database:
         Agents use this to query and modify scene state
     """
 
-    def __init__(self, json_path='../webXR/sceneData.json'):
+    def __init__(self):
         """
         Initialize data exchange 
         Args:
             json_path: Path to sceneData.json file
         """
-
-        self.json_path = json_path
+        repo_root = Path(__file__).resolve().parents[1]
+        self.json_path = repo_root / "webXR" / "sceneData.json"
         self.load()
-    
+
     def load(self):
         # load scene from JSON file
         try:
@@ -34,6 +34,8 @@ class Database:
 
             # For fast demo we just consider load object data right now
             self.objects = self.scene_data['objects']
+            # for testing Database().load()
+            # return self.objects
         
         except FileNotFoundError:
             print(f"❌ Scene file not found: {self.json_path}")
@@ -43,7 +45,8 @@ class Database:
             raise
     
     """
-        Query Methods
+        Query Methods: basic functionalities of a database
+        Extraction of data by id, name, category, etc.
     """
     def get_object_by_id(self, object_id: str):
         """
@@ -129,14 +132,137 @@ class Database:
         obj = self.get_object_by_id(object_id)
         return obj.get('spatialRelations') if obj else None
     
-    def get_scene_bounds (self) -> Dict:
+    # def get_scene_bounds (self) -> Dict:
         """
         Get scene boundaries
    
         Returns:
             Dict with min and max bounds
         """
-        return self.metadata['bounds']
+        # return self.metadata['bounds']
+    
+    """
+        Modification methods: Update scene
+    """
+
+    def update_object_position(self, 
+                               object_id: str, 
+                               new_position: Dict[str, float]
+                               ) -> bool:
+        """
+        Update object position in memory
+
+        Args:
+            object_id: Object ID
+            new_position: New position w/ updated rotation {x, y, z}
+            (in radians)
+
+        Returns:
+            True if successful, false if cannot find the object
+        """
+        obj = self.get_object_by_id(object_id)
+        if obj:
+            obj['position'].update(new_position)
+            print(f"Updated {obj['name']} position to {new_position}")
+            return True
+        else: 
+            return False
+        
+    def update_object_rotation(self, 
+                               object_id: str, 
+                               new_rotation: Dict[str, float]
+                               ) -> bool:
+        obj = self.get_object_by_id(object_id)
+        if obj:
+            obj['rotation'].update(new_rotation)
+            print(f"Updated {obj['name']} rotation to {new_rotation}")
+            return True
+        else:
+            return False
+        
+    def add_object(self,
+                   object_data: Dict
+                   ) -> str:
+        """
+        Add new object to the sceneData.json
+
+        Args:
+            object_data: complete object definition diction data structure
+
+        Returns:
+            object ID of the newly added object
+        """
+
+        # ensure that the object has an id
+        if 'id' not in object_data:
+            # automatically generate an id from base_name
+            base_name = object_data.get('name', 'object').replace(' ', '_')
+            count = len([o for o in self.objects if o['name'] == object_data.get('name')])
+            object_data['id'] = f"{base_name}_{count + 1:02d}"
+
+        self.objects.append(object_data)
+        print(f"Added new object: {object_data['name']} ({object_data['id']})")
+        return object_data['id']
+
+    def remove_object(self, object_id: str) -> bool:
+        """
+        Remove object from scene
+
+        Args:
+            object_id: Object ID to remove
+
+        Returns:
+            True if succeed, flase if not
+        """
+        for i, obj in enumerate(self.objects):
+            if obj['id'] == object_id:
+                removed = self.objects.pop(i)
+                print(f"Removed object: {removed['name']} ({object_id})")
+                return True
+        return False
+
+    """
+        Data visualization
+    """
+
+    def get_statistics(self) -> Dict:
+        """
+        Get statistics about the scene
+        
+        Returns:
+            Dict with scene statistics
+        """
+        return {
+            'total_objects': len(self.objects),
+            'movable_objects': len(self.get_movable_objects()),
+            'categories': list(set(obj.get('category', 'unknown') for obj in self.objects))
+        }
+    
+    def print_statistics(self):
+        """Print scene statistics"""
+        stats = self.get_statistics()
+        print(f"{'='*50}")
+        print(f"Total Objects: {stats['total_objects']}")
+        print(f"Movable Objects: {stats['movable_objects']}")
+        print(f"Categories: {', '.join(stats['categories'])}")
 
 
+"""
+    Test cases
+"""
+db = Database()
 
+# Test load data
+print(db.load()) # Succeed
+
+# Test data visualization
+db.print_statistics()
+"""     
+        Test result: PASS
+    ==================================================
+        Total Objects: 6
+        Movable Objects: 6
+        Categories: vehicle, furniture
+""" 
+
+# Test for query methods
