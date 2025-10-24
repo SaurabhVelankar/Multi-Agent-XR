@@ -43,12 +43,19 @@
             ├── webXR/              # Frontend
             │   ├── index.js
             │   ├── init.js
+            |   ├── index.html
+            |   ├── sceneLoader.js
+            |   ├── sceneData.json
             │   └── assets/
+
             ├── backend/            # Python backend
             │   ├── main.py         # FastAPI server
             │   ├── requirements.txt
+            |   ├── __init__.js
+            |   ├── database.js
+            |   ├── memory.js
+            |   ├── orchestrator.js
             │   └── agents/
-            │       ├── __init__.py
             │       ├── languageAgent.py
             │       ├── sceneAgent.py
             │       ├── assetAgent.py
