@@ -58,7 +58,7 @@
             ├── package.json
             └── webpack.config.cjs
 
-    5,3 Importance of Shared Memory System
+    5.3 Importance of Shared Memory System
         How is shared memory different from orchestrator in their distinctive funcionalities?
         ╔══════════════════════╦═══════════════════════════╦═══════════════════════════╗
         ║                      ║    SHARED MEMORY          ║   ORCHESTRATOR AGENT      ║
@@ -66,9 +66,9 @@
         ║ What is it?          ║ Database / Storage        ║ Strategic Decision-Maker  ║
         ║                      ║ (Like Google Drive)       ║ (Like Project Manager)    ║
         ╠══════════════════════╬═══════════════════════════╬═══════════════════════════╣
-        ║ Has AI/LLM?          ║ ❌ No                     ║ ✅ Yes                    ║
+        ║ Has AI/LLM?          ║ No                        ║ Yes                       ║
         ╠══════════════════════╬═══════════════════════════╬═══════════════════════════╣
-        ║ Makes Decisions?     ║ ❌ No (passive)           ║ ✅ Yes (active)           ║
+        ║ Makes Decisions?     ║ No (passive)              ║ Yes (active)              ║
         ╠══════════════════════╬═══════════════════════════╬═══════════════════════════╣
         ║ Main Function        ║ Store & Retrieve Data     ║ Coordinate & Decide       ║
         ╠══════════════════════╬═══════════════════════════╬═══════════════════════════╣
@@ -77,9 +77,9 @@
         ║                      ║ • store_episode()         ║ • resolve_conflict()      ║
         ║                      ║ • get_learned_pattern()   ║ • evaluate_results()      ║
         ╠══════════════════════╬═══════════════════════════╬═══════════════════════════╣
-        ║ Uses the other?      ║ ❌ No                     ║ ✅ Yes (uses memory)      ║
+        ║ Uses the other?      ║ No                        ║ Yes (uses memory)         ║
         ╠══════════════════════╬═══════════════════════════╬═══════════════════════════╣
-        ║ In your paper        ║ "Shared episodic memory   ║ "Intelligent meta-agent   ║
+        ║ For the paper        ║ "Shared episodic memory   ║ "Intelligent meta-agent   ║
         ║                      ║  enables learning"        ║  for coordination"        ║
         ╠══════════════════════╬═══════════════════════════╬═══════════════════════════╣
         ║ Code File            ║ shared_memory.py          ║ orchestrator_agent.py     ║
@@ -91,3 +91,7 @@
         Link: https://medium.com/mongodb/why-multi-agent-systems-need-memory-engineering-153a81f8d5be
         But I don't think that for this research project we need production level database like MangoDB to do the shared memory management.
         Instead, this project demonstrates the effectiveness of shared memory in a MAS that can help with adaptive learning.
+    
+    5.4 Shared Memory Design Techniques
+        Link: https://medium.com/@cauri/memory-in-multi-agent-systems-technical-implementations-770494c0eca7
+
