@@ -1,9 +1,10 @@
-'''
-    Database module for BackEnd Agents.
+''' _____________________________________________________________
+    Database module for BackEnd Agents.                        
     Loads data from the sceneData.json in the WebXR folder.
     This module contains two different functionalities:
-    1. Grab data from the .json file in the WebXR frontEnd;
-    2. Update change made by the MAS backEnd to the .json file.
+        1. Grab data from the .json file in the WebXR frontEnd;
+        2. Update change made by the MAS backEnd to the .json file.
+    _____________________________________________________________
 '''
 
 import json
@@ -11,9 +12,10 @@ from typing import Dict, List, Optional, Tuple
 from pathlib import Path
 
 class Database:
-    """
+    """ _____________________________________________________________
         Python interface to scene data (loads from JSON)
         Agents use this to query and modify scene state
+        _____________________________________________________________
     """
 
     def __init__(self):
@@ -25,6 +27,11 @@ class Database:
         repo_root = Path(__file__).resolve().parents[1]
         self.json_path = repo_root / "webXR" / "sceneData.json"
         self.load()
+
+    """ _____________________________________________________________
+        Basic functions: Load & Save
+        _____________________________________________________________
+    """
 
     def load(self):
         # load scene from JSON file
@@ -44,9 +51,28 @@ class Database:
             print(f"❌ Invalid JSON in scene file: {e}")
             raise
     
-    """
+    def save(self, filepath: str = None):
+        """
+        Save current scene state back to JSON file
+        
+        Args:
+            filepath: Optional different path to save to
+        """
+        save_path = filepath or self.json_path
+        
+        try:
+            with open(save_path, 'w') as f:
+                json.dump(self.scene_data, f, indent=2)
+            print(f"✅ Scene saved to {save_path}")
+        except Exception as e:
+            print(f"❌ Failed to save scene: {e}")
+            raise
+
+    
+    """ _____________________________________________________________
         Query Methods: basic functionalities of a database
         Extraction of data by id, name, category, etc.
+        _____________________________________________________________
     """
     def get_object_by_id(self, object_id: str):
         """
@@ -60,8 +86,7 @@ class Database:
         for obj in self.objects:
             if obj['id'] == object_id:
                 return obj
-            else:
-                return None
+        return None
     
     def get_objects_by_name(self, name: str):
         """
@@ -141,8 +166,9 @@ class Database:
         """
         # return self.metadata['bounds']
     
-    """
+    """ _____________________________________________________________
         Modification methods: Update scene
+        _____________________________________________________________
     """
 
     def update_object_position(self, 
@@ -165,8 +191,7 @@ class Database:
             obj['position'].update(new_position)
             print(f"Updated {obj['name']} position to {new_position}")
             return True
-        else: 
-            return False
+        return False
         
     def update_object_rotation(self, 
                                object_id: str, 
@@ -177,8 +202,7 @@ class Database:
             obj['rotation'].update(new_rotation)
             print(f"Updated {obj['name']} rotation to {new_rotation}")
             return True
-        else:
-            return False
+        return False
         
     def add_object(self,
                    object_data: Dict
@@ -220,9 +244,35 @@ class Database:
                 print(f"Removed object: {removed['name']} ({object_id})")
                 return True
         return False
-
+    
+    """ _____________________________________________________________
+        Spatial Calculation Methods (measure spatial relationships)
+        _____________________________________________________________
     """
+    def calculate_distance(self, 
+                           pos1: Dict[str, float], 
+                           pos2: Dict[str, float]) -> float:
+        """
+        Calculate Euclidean distance between two positions
+        
+        Args:
+            pos1: First position {x, y, z}
+            pos2: Second position {x, y, z}
+        
+        Returns:
+            Distance in meters
+        """
+        euclidean_distance_btw_2pos = (
+            (pos1['x'] - pos2['x'])**2 +
+            (pos1['y'] - pos2['y'])**2 +
+            (pos1['z'] - pos2['z'])**2 
+            )**0.5
+        return  euclidean_distance_btw_2pos
+        
+    
+    """ _____________________________________________________________
         Data visualization
+        _____________________________________________________________
     """
 
     def get_statistics(self) -> Dict:
@@ -247,16 +297,18 @@ class Database:
         print(f"Categories: {', '.join(stats['categories'])}")
 
 
-"""
+""" _____________________________________________________________
     Test cases
+    _____________________________________________________________
 """
 db = Database()
 
 # Test load data
-print(db.load()) # Succeed
+# print(db.load()) 
+# Succeed
 
 # Test data visualization
-db.print_statistics()
+# db.print_statistics()
 """     
         Test result: PASS
     ==================================================
@@ -265,4 +317,42 @@ db.print_statistics()
         Categories: vehicle, furniture
 """ 
 
-# Test for query methods
+# Test for query methods: PASS
+''' Test grab object by name
+tables = db.get_objects_by_name('table')
+print(f"Tables found: {len(tables)}")
+for table in tables:
+    print(f"  - {table['name']} at {table['position']}")
+
+chairs = db.get_objects_by_name('chair')
+print(f"Chairs found: {len(chairs)}")
+for chair in chairs:
+    print(f"  - {chair['name']} at {chair['position']}")
+'''
+
+# find object near table: PASS
+'''
+if tables:
+    table_pos = tables[0]['position']
+    nearby = db.get_objects_near_position(table_pos, radius = 1.0)
+    print(f"\nObjects within 1m of table: {len(nearby)}")
+    for obj in nearby:
+        if obj['id'] != tables[0]['id']:
+            distance = db.calculate_distance(table_pos, obj['position'])
+            print(f"  - {obj['name']}: {distance:.2f}m away")
+'''
+
+# Test get extract movable ojects: PASS
+'''
+movable = db.get_movable_objects()
+print(f"\nMovable objects: {len(movable)}")
+for obj in movable:
+    print(f"  - {obj['name']}")
+'''
+
+# test update object position & rotation
+'''
+db.update_object_rotation("chair_01", {"x": 0, "y": -1.5707963267948966, "z": 0})
+db.update_object_position("chair_01", {"x": 0.4, "y": -1, "z": 1.5})
+db.save()
+'''

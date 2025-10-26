@@ -3,58 +3,127 @@
     "sceneName": "dining_room",
     "sceneType": "interior",
     "bounds": {
-      "min": { "x": -1, "y": -1, "z": -2.5 },
-      "max": { "x": 1, "y": 0.5, "z": -0.5 }
+      "min": {
+        "x": -1,
+        "y": -1,
+        "z": -2.5
+      },
+      "max": {
+        "x": 1,
+        "y": 0.5,
+        "z": -0.5
+      }
     },
-    "userSpawnPoint": { "x": 0, "y": 0, "z": 0 }
+    "userSpawnPoint": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    }
   },
-
   "structure": {
     "floor": {
       "id": "floor_01",
       "type": "floor",
-      "geometry": { "width": 6, "height": 6 },
-      "position": { "x": 0, "y": -1, "z": -1.5 },
-      "rotation": { "x": -1.5707963267948966, "y": 0, "z": 0 },
-      "scale": { "x": 0.3333333333333333, "y": 0.3333333333333333, "z": 0.3333333333333333 },
+      "geometry": {
+        "width": 6,
+        "height": 6
+      },
+      "position": {
+        "x": 0,
+        "y": -1,
+        "z": -1.5
+      },
+      "rotation": {
+        "x": -1.5707963267948966,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.3333333333333333,
+        "y": 0.3333333333333333,
+        "z": 0.3333333333333333
+      },
       "texture": "assets/textures/wood-floor-texture.png",
       "material": "standard"
     },
-    
     "walls": [
       {
         "id": "wall_left",
         "type": "wall",
-        "geometry": { "width": 6, "height": 3 },
-        "position": { "x": -1, "y": -0.5, "z": -1.5 },
-        "rotation": { "x": 0, "y": 1.5707963267948966, "z": 0 },
-        "scale": { "x": 0.3333333333333333, "y": 0.3333333333333333, "z": 0.3333333333333333 },
+        "geometry": {
+          "width": 6,
+          "height": 3
+        },
+        "position": {
+          "x": -1,
+          "y": -0.5,
+          "z": -1.5
+        },
+        "rotation": {
+          "x": 0,
+          "y": 1.5707963267948966,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.3333333333333333,
+          "y": 0.3333333333333333,
+          "z": 0.3333333333333333
+        },
         "texture": "assets/textures/brick.png",
         "material": "standard"
       },
       {
         "id": "wall_back",
         "type": "wall",
-        "geometry": { "width": 6, "height": 3 },
-        "position": { "x": 0, "y": -0.5, "z": -2.5 },
-        "rotation": { "x": 0, "y": 0, "z": 0 },
-        "scale": { "x": 0.3333333333333333, "y": 0.3333333333333333, "z": 0.3333333333333333 },
+        "geometry": {
+          "width": 6,
+          "height": 3
+        },
+        "position": {
+          "x": 0,
+          "y": -0.5,
+          "z": -2.5
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.3333333333333333,
+          "y": 0.3333333333333333,
+          "z": 0.3333333333333333
+        },
         "texture": "assets/textures/brick.png",
         "material": "standard"
       },
       {
         "id": "wall_right",
         "type": "wall",
-        "geometry": { "width": 6, "height": 3 },
-        "position": { "x": 1, "y": -0.5, "z": -1.5 },
-        "rotation": { "x": 0, "y": 1.5707963267948966, "z": 0 },
-        "scale": { "x": 0.3333333333333333, "y": 0.3333333333333333, "z": 0.3333333333333333 },
+        "geometry": {
+          "width": 6,
+          "height": 3
+        },
+        "position": {
+          "x": 1,
+          "y": -0.5,
+          "z": -1.5
+        },
+        "rotation": {
+          "x": 0,
+          "y": 1.5707963267948966,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.3333333333333333,
+          "y": 0.3333333333333333,
+          "z": 0.3333333333333333
+        },
         "texture": "assets/textures/brick.png",
         "material": "standard"
       }
     ]
   },
-
   "objects": [
     {
       "id": "table_01",
@@ -62,12 +131,32 @@
       "category": "furniture",
       "subcategory": "surface",
       "modelPath": "assets/gltf-glb-models/table/Table.gltf",
-      "position": { "x": 0, "y": -1, "z": -1.5 },
-      "rotation": { "x": 0, "y": 0, "z": 0 },
-      "scale": { "x": 0.3333333333333333, "y": 0.3333333333333333, "z": 0.3333333333333333 },
+      "position": {
+        "x": 0,
+        "y": -1,
+        "z": -1.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.3333333333333333,
+        "y": 0.3333333333333333,
+        "z": 0.3333333333333333
+      },
       "boundingBox": {
-        "min": { "x": -0.3, "y": -1, "z": -1.8 },
-        "max": { "x": 0.3, "y": -0.7, "z": -1.2 }
+        "min": {
+          "x": -0.3,
+          "y": -1,
+          "z": -1.8
+        },
+        "max": {
+          "x": 0.3,
+          "y": -0.7,
+          "z": -1.2
+        }
       },
       "properties": {
         "movable": true,
@@ -77,22 +166,45 @@
       },
       "spatialRelations": {
         "on": "floor_01",
-        "near": ["chair_01", "chair_02", "lamp_01"]
+        "near": [
+          "chair_01",
+          "chair_02",
+          "lamp_01"
+        ]
       }
     },
-    
     {
       "id": "chair_01",
       "name": "chair",
       "category": "furniture",
       "subcategory": "seating",
       "modelPath": "assets/gltf-glb-models/chair/chair.gltf",
-      "position": { "x": 0.4, "y": -1, "z": -1.5 },
-      "rotation": { "x": 0, "y": -1.5707963267948966, "z": 0 },
-      "scale": { "x": 0.005, "y": 0.005, "z": 0.005 },
+      "position": {
+        "x": 0.4,
+        "y": -1,
+        "z": -1.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.005,
+        "y": 0.005,
+        "z": 0.005
+      },
       "boundingBox": {
-        "min": { "x": 0.3, "y": -1, "z": -1.6 },
-        "max": { "x": 0.5, "y": -0.5, "z": -1.4 }
+        "min": {
+          "x": 0.3,
+          "y": -1,
+          "z": -1.6
+        },
+        "max": {
+          "x": 0.5,
+          "y": -0.5,
+          "z": -1.4
+        }
       },
       "properties": {
         "movable": true,
@@ -106,19 +218,38 @@
         "facing": "left"
       }
     },
-
     {
       "id": "chair_02",
       "name": "chair",
       "category": "furniture",
       "subcategory": "seating",
       "modelPath": "assets/gltf-glb-models/chair/chair.gltf",
-      "position": { "x": -0.3, "y": -1, "z": -1.8 },
-      "rotation": { "x": 0, "y": 1.0471975511965976, "z": 0 },
-      "scale": { "x": 0.005, "y": 0.005, "z": 0.005 },
+      "position": {
+        "x": -0.3,
+        "y": -1,
+        "z": -1.8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.0471975511965976,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.005,
+        "y": 0.005,
+        "z": 0.005
+      },
       "boundingBox": {
-        "min": { "x": -0.4, "y": -1, "z": -1.9 },
-        "max": { "x": -0.2, "y": -0.5, "z": -1.7 }
+        "min": {
+          "x": -0.4,
+          "y": -1,
+          "z": -1.9
+        },
+        "max": {
+          "x": -0.2,
+          "y": -0.5,
+          "z": -1.7
+        }
       },
       "properties": {
         "movable": true,
@@ -132,19 +263,38 @@
         "facing": "table_01"
       }
     },
-
     {
       "id": "lamp_01",
       "name": "lamp",
       "category": "furniture",
       "subcategory": "lighting",
       "modelPath": "assets/gltf-glb-models/lamp/lamp.glb",
-      "position": { "x": 0.3, "y": -1, "z": -1.2 },
-      "rotation": { "x": 0, "y": 0, "z": 0 },
-      "scale": { "x": 0.025, "y": 0.025, "z": 0.025 },
+      "position": {
+        "x": 0.3,
+        "y": -1,
+        "z": -1.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.025,
+        "y": 0.025,
+        "z": 0.025
+      },
       "boundingBox": {
-        "min": { "x": 0.25, "y": -1, "z": -1.25 },
-        "max": { "x": 0.35, "y": -0.6, "z": -1.15 }
+        "min": {
+          "x": 0.25,
+          "y": -1,
+          "z": -1.25
+        },
+        "max": {
+          "x": 0.35,
+          "y": -0.6,
+          "z": -1.15
+        }
       },
       "properties": {
         "movable": true,
@@ -157,19 +307,38 @@
         "near": "table_01"
       }
     },
-
     {
       "id": "stool_01",
       "name": "wooden stool",
       "category": "furniture",
       "subcategory": "seating",
       "modelPath": "assets/gltf-glb-models/wooden_stool/wooden_stool.gltf",
-      "position": { "x": -0.7, "y": -1, "z": -2 },
-      "rotation": { "x": 0, "y": 0, "z": 0 },
-      "scale": { "x": 0.003, "y": 0.003, "z": 0.003 },
+      "position": {
+        "x": -0.7,
+        "y": -1,
+        "z": -2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.003,
+        "y": 0.003,
+        "z": 0.003
+      },
       "boundingBox": {
-        "min": { "x": -0.75, "y": -1, "z": -2.05 },
-        "max": { "x": -0.65, "y": -0.6, "z": -1.95 }
+        "min": {
+          "x": -0.75,
+          "y": -1,
+          "z": -2.05
+        },
+        "max": {
+          "x": -0.65,
+          "y": -0.6,
+          "z": -1.95
+        }
       },
       "properties": {
         "movable": true,
@@ -183,19 +352,38 @@
         "near": "wall_back"
       }
     },
-
     {
       "id": "scooter_01",
       "name": "scooter",
       "category": "vehicle",
       "subcategory": "personal_transport",
       "modelPath": "assets/gltf-glb-models/scooter/scooter.glb",
-      "position": { "x": -0.5, "y": -1, "z": -1 },
-      "rotation": { "x": 0, "y": 4.1887902047863905, "z": 0 },
-      "scale": { "x": 0.008, "y": 0.008, "z": 0.008 },
+      "position": {
+        "x": -0.5,
+        "y": -1,
+        "z": -1
+      },
+      "rotation": {
+        "x": 0,
+        "y": 4.1887902047863905,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.008,
+        "y": 0.008,
+        "z": 0.008
+      },
       "boundingBox": {
-        "min": { "x": -0.6, "y": -1, "z": -1.1 },
-        "max": { "x": -0.4, "y": -0.7, "z": -0.9 }
+        "min": {
+          "x": -0.6,
+          "y": -1,
+          "z": -1.1
+        },
+        "max": {
+          "x": -0.4,
+          "y": -0.7,
+          "z": -0.9
+        }
       },
       "properties": {
         "movable": true,
@@ -210,7 +398,6 @@
       }
     }
   ],
-
   "lighting": [
     {
       "id": "ambient_light",
@@ -223,7 +410,11 @@
       "type": "directional",
       "color": 16777215,
       "intensity": 0.0,
-      "position": { "x": 2, "y": 3, "z": 1 }
+      "position": {
+        "x": 2,
+        "y": 3,
+        "z": 1
+      }
     }
   ]
 }
