@@ -1,13 +1,24 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Set
 from orchestrator import Orchestrator
 from __init__ import LanguageAgent, SceneAgent, AssetAgent, CodeAgent, VerificationAgent
 from database import Database
+import uvicorn
+import json
 
-'''Server side code'''
-app = FastAPI(title="VR Multi-Agent Spatial System")
+'''Server side code with WebSocket support'''
+app = FastAPI(title = "XR Multi-Agent Spatial System")
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Initialize specialized agents
 language_agent = LanguageAgent()
@@ -21,3 +32,101 @@ orchestration_agent = Orchestrator()
 
 # Initialize scene database
 scene_database = Database()
+
+# WebSocket connection manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Set[WebSocket] = set()
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self. active_connections.add(websocket)
+        print(f"✅ Client connected. Total: {len(self.active_connections)}")
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+        print(f"❌ Client disconnected. Total: {len(self.active_connections)}")
+    
+    async def broadcast(self, message: Dict):
+        """Broadcast message to all connected clients"""
+        disconnected = set()
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+            except Exception:
+                disconnected.add(connection)
+        
+        # clean up disconnected clients
+        for conn in disconnected:
+            self.active_connections.discard(conn)
+        
+        if self.active_connections:
+            print(f"📡 Broadcast to {len(self.active_connections)} clients")
+
+# Global connection manager
+manager = ConnectionManager()
+
+# WebSocket endpoint
+@app.websocket("/ws/scene")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            # Keep connection alive and listen for messages
+            data = await websocket.receive_text()
+            message = json.loads(data)
+            # Handle client messages (optional)
+            if message.get('type') == 'ping':
+                await websocket.send_json({'type': 'pong'})
+    
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+        manager.disconnect(websocket)
+
+# function for agents to broadcast updates
+async def broadcast_scene_update(update_type: str, data: dict):
+    """Helper function for broadcasting scene updates"""
+    message = {
+        'type': update_type,
+        'data': data 
+    }
+    await manager.broadcast(message)
+
+# Make broadcast function accessible to database
+app.state.broadcast = broadcast_scene_update
+app.state.manager = manager
+
+# Example API endpoints
+@app.get("/")
+async def root():
+    return {"message": "XR Multi-Agent Spatial System API"}
+
+@app.get("/scene/stats")
+async def get_scene_stats():
+    """Get scene statistics"""
+    return scene_database.get_statistics()
+
+@app.post("/scene/update-position")
+async def update_position(object_id: str, x: float, y:float, z: float):
+    """Update object position and broadcast to all clients"""
+    success = scene_database.update_object_position(
+        object_id, 
+        {"x": x, "y": y, "z": z}
+    )
+
+    if success:
+        # Broadcast to all connected WebSocket clients
+        await broadcast_scene_update('object_position_updated', {
+            'objectId': object_id,
+            'position': {'x': x, 'y': y, 'z': z}
+        })
+        # Save without double-broadcast
+        # scene_database.save() 
+        return {"status": "success", "objectId": object_id}
+
+    raise HTTPException(status_code=404, detail="Object not found")
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

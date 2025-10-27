@@ -4,3 +4,6 @@ langchain==0.0.335
 python-multipart==0.0.6
 pydantic==2.5.0
 google-generativeai
+fastapi
+uvicorn
+websockets

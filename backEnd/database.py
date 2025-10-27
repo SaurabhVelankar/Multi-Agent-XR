@@ -10,6 +10,7 @@
 import json
 from typing import Dict, List, Optional, Tuple
 from pathlib import Path
+import asyncio
 
 class Database:
     """ _____________________________________________________________
@@ -18,14 +19,16 @@ class Database:
         _____________________________________________________________
     """
 
-    def __init__(self):
+    def __init__(self, app=None):
         """
         Initialize data exchange 
         Args:
             json_path: Path to sceneData.json file
+            app: FastAPI app instance (optional, for WebSocket broadcasting)
         """
         repo_root = Path(__file__).resolve().parents[1]
         self.json_path = repo_root / "webXR" / "sceneData.json"
+        self.app = app
         self.load()
 
     """ _____________________________________________________________
@@ -171,6 +174,16 @@ class Database:
         _____________________________________________________________
     """
 
+    def _broadcast_update(self, update_type: str, data: Dict):
+        """Broadcast update via FastAPI WebSocket if available"""
+        if self.app and hasattr(self.app.state, 'manager'):
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(
+                self.app.state.broadcast(update_type, data)
+            )
+            loop.close()
+
     def update_object_position(self, 
                                object_id: str, 
                                new_position: Dict[str, float]
@@ -190,6 +203,13 @@ class Database:
         if obj:
             obj['position'].update(new_position)
             print(f"Updated {obj['name']} position to {new_position}")
+
+            # Broadcast via WebSocket
+            self._broadcast_update('object_position_updated', {
+                'objectId': object_id,
+                'position': new_position,
+                'name': obj['name']
+            })
             return True
         return False
         

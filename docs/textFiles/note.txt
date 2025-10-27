@@ -8,6 +8,8 @@
 
     3.1 Langchain
         Link: https://langchain-ai.github.io/langgraph/concepts/multi_agent/
+    3.2 Hello-agents (good learnning material)
+        Link: https://datawhalechina.github.io/hello-agents/#/
 
 4.  Related Github projects
 

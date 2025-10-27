@@ -23,17 +23,15 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
 
 ## Open the project:
 1. **Open the terminal in the root project folder**:
-    if you just want to open and test the backend run (this is abandoned since I decide to switch to python backend, but the backend activation will be updated soon)
+    if you just want to open and test the backend run 
     ```bash
-    npm run start-server
+    cd backEnd
+    python main.py
     ```
-    if you just want to open and test the frontend run
+    if you just want to open and test the frontend, open another terminal run
     ```bash
+    cd Multi-Agent-XR
     npm run dev
-    ```
-    if you want to open the frontend and backend at the same time to see the whole workflow run
-    ```bash
-    npm run dev-full
     ```
 
 2. **Check your local IP address by running**:
@@ -44,6 +42,13 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
 
 3. **Navigate to the example**:
     To navigate to the scene, go to your browser (either on laptop or XR headset) and type: https://your-ip-address:8081/.
+
+4. **Test update position function**:
+    Open the third terminal and type
+    ```bash
+    curl -X POST "http://localhost:8000/scene/update-position?object_id=chair_01&x=0.4&y=-1&z=-1.5"
+    ```
+    The chair with id "chair_01" will move to position {x: 0.4, y: -1, z: -1.5}, similar pattern for rotation function.
 
 ## Install Immersive Web Emulator extension
 Navigate to: https://chromewebstore.google.com/detail/immersive-web-emulator/cgffilbpcibhmcfbgggfhfolhkfbhmik?hl=en&pli=1 to install the extension for your Chrome browser.

@@ -40,6 +40,46 @@ async function setupScene({ scene, camera, renderer, player, controllers }) {
     window.sceneDatabase = sceneDatabase;
     
     console.log('✅ Scene loaded from JSON with', sceneDatabase.objects.length, 'objects');
+
+    // Add websocket
+    setupWebSocket()
+}
+
+/**
+ * Connect to FastAPI WebSocket
+*/
+function setupWebSocket(){
+    const ws = new WebSocket('ws://localhost:8000/ws/scene');
+
+    ws.onopen = () => {
+        console.log('✅ WebSocket connected');
+    }
+
+    ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        console.log('📨 Received:', message);
+
+        switch(message.type) {
+            case 'object_position_updated':
+                updateObjectPosition(message.data);
+                break;
+            case 'object_rotation_updated':
+                updateObjectRotation(message.data);
+                break;
+            case 'scene_saved':
+                console.log('Scene updated from backend');
+                break;
+        }
+    };
+
+    ws.onerror = (error) => {
+        console.error('❌ WebSocket error:', error);
+    };
+
+    ws.onclose = () => {
+        console.log('🔌 WebSocket disconnected, reconnecting...');
+        setTimeout(setupWebSocket, 3000); // Auto-reconnect
+    }
 }
 
 /**
@@ -193,9 +233,50 @@ function loadLighting(scene) {
     });
 }
 
+
 /**
- * API for agents to modify the scene
+ * Update object position from WebSocket message
  */
+function updateObjectPosition(data) {
+    const threeObject = loadedObjects.get(data.objectId);
+    if (threeObject) {
+        gsap.to(threeObject.position, {
+            x: data.position.x,
+            y: data.position.y,
+            z: data.position.z,
+            duration: 0.5,
+            ease: "power2.inOut"
+        });
+        console.log(`✨ Updated ${data.name} position from backend`);
+    } else {
+        console.warn(`Object ${data.objectId} not found in scene`);
+    }
+}
+
+/**
+ * Update object rotation from WebSocket message
+ */
+function updateObjectRotation(data) {
+    const threeObject = loadedObjects.get(data.objectId);
+    if (threeObject) {
+        gsap.to(threeObject.rotation, {
+            x: data.rotation.x,
+            y: data.rotation.y,
+            z: data.rotation.z,
+            duration: 0.5,
+            ease: "power2.inOut"
+        });
+        console.log(`✨ Updated ${data.name} rotation from backend`);
+    } else {
+        console.warn(`Object ${data.objectId} not found in scene`);
+    }
+}
+
+
+
+/**
+ * API for agents to modify the scene (for further integration)
+
 window.agentAPI = {
     // Move an object to a new position
     moveObject: (objectId, newPosition, animate = true) => {
@@ -284,7 +365,10 @@ window.agentAPI = {
         return await sceneQuery.saveToServer('/api/scene/save');
     }
 };
+*/
 
+
+// Animation function
 function onFrame(delta, time, { scene, camera, renderer, player, controllers }) {
     // Add any per-frame logic here
     // For example, update spatial relationships based on user position

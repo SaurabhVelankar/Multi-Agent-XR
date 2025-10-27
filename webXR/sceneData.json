@@ -181,7 +181,7 @@
       "modelPath": "assets/gltf-glb-models/chair/chair.gltf",
       "position": {
         "x": 0.4,
-        "y": -1,
+        "y": -1.0,
         "z": -1.5
       },
       "rotation": {

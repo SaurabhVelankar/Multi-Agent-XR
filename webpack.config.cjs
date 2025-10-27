@@ -74,6 +74,19 @@ const frontendConfig = {
       client: {
         overlay: { warnings: false, errors: true },
       },
+
+      // IGNORE sceneData.json changes
+      watchFiles: {
+        paths: ['webXR/**/*'],
+        options: {
+          ignored: [
+            '**/sceneData.json',
+            'webXR/sceneData.json',
+            path.resolve(__dirname, 'webXR/sceneData.json')
+          ], // Don't reload when sceneData.json changes
+        },
+      },
+
       proxy: [{
         context: [
           '/api',
