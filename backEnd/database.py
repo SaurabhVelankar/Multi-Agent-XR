@@ -27,7 +27,7 @@ class Database:
             app: FastAPI app instance (optional, for WebSocket broadcasting)
         """
         repo_root = Path(__file__).resolve().parents[1]
-        self.json_path = repo_root / "webXR" / "sceneData.json"
+        self.json_path = repo_root / "middleware" / "sceneData.json"
         self.app = app
         self.load()
 

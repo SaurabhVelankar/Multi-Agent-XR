@@ -117,16 +117,24 @@ async def update_position(object_id: str, x: float, y:float, z: float):
     )
 
     if success:
+        obj = scene_database.get_object_by_id(object_id)
         # Broadcast to all connected WebSocket clients
+        
         await broadcast_scene_update('object_position_updated', {
             'objectId': object_id,
-            'position': {'x': x, 'y': y, 'z': z}
-        })
+            'position': {'x': x, 'y': y, 'z': z},
+            'name': obj['name'] if obj else 'unknown'
+        }) 
+        
         # Save without double-broadcast
         # scene_database.save() 
+
         return {"status": "success", "objectId": object_id}
 
     raise HTTPException(status_code=404, detail="Object not found")
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, 
+                host="0.0.0.0", 
+                port=8000,
+                )
