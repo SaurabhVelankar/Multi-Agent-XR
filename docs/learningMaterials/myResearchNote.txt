@@ -16,7 +16,7 @@
     4.1 Unity Quest Camera Passthrough
         Link: https://github.com/oculus-samples/Unity-PassthroughCameraApiSamples
 
-5. General Architecture Design
+5.  General Architecture Design
 
     5.1 FrontEnd WebXR version & Unity version
         ┌─────────────────────────────────────────┐
@@ -104,3 +104,7 @@
     5.4 Shared Memory Design Techniques
         Link: https://medium.com/@cauri/memory-in-multi-agent-systems-technical-implementations-770494c0eca7
 
+6.  Other useful websites
+    6.1 Free glb/gltf assets
+        Link: https://www.turbosquid.com
+        You need to use Google account to signup an account first.
