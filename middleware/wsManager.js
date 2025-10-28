@@ -6,11 +6,23 @@ let loadedObjects = null;
 /**
  * Connect to FastAPI WebSocket
  */
+
 export function setupWebSocket(objectsMap) {
   loadedObjects = objectsMap;
   
-  ws = new WebSocket('ws://localhost:8000/ws/scene');
+  // ws = new WebSocket('ws://localhost:8000/ws/scene');
+  // const host = window.location.hostname; // Gets "10.0.0.97" for headset
+  // const wsUrl = `ws://${host}:8000/ws/scene`;
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const hostname = window.location.hostname; // Just hostname, no port
+  const wsUrl = `${protocol}//${hostname}:8000/ws/scene`;
+  
 
+  ws = new WebSocket(wsUrl);
+  
+
+
+  
   ws.onmessage = (event) => {
     const message = JSON.parse(event.data);
     console.log('📨 Received:', message);

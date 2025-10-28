@@ -195,6 +195,7 @@ function loadLighting(scene) {
 function onFrame(delta, time, { scene, camera, renderer, player, controllers }) {
   // Add any per-frame logic here
   // For example, update spatial relationships based on user position
+  gsap.ticker.tick();
 }
 
 init(setupScene, onFrame);

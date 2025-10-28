@@ -22,31 +22,45 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
     ```
 
 ## Open the project:
-1. **Open the terminal in the root project folder**:
+
+
+1. **Check your local IP address by running**:
+    ```bash
+    ifconfig | grep "inet " | grep -v 127.0.0.1
+    ```
+    For example, 12.34.56.789 is my IP address. 
+
+2. **Gather SSL certificate by running**:
+    ```bash
+    cd backEnd
+    openssl req -x509 -newkey rsa:4096 -nodes \
+        -keyout key.pem -out cert.pem -days 365 \
+        -subj "/C=US/ST=State/L=City/O=Dev/CN=your-ip-address"
+    ```
+
+3. **Open the terminal in the root project folder**:
     if you just want to open and test the backend run 
     ```bash
     cd backEnd
-    python main.py
+    uvicorn main:app --host 0.0.0.0 --port 8000 \
+        --ssl-keyfile=key.pem --ssl-certfile=cert.pem
     ```
-    if you just want to open and test the frontend, open another terminal run
+    if you just want to open and test the frontend, open another terminal, navigate to the project root folder and run
     ```bash
     cd Multi-Agent-XR
     npm run dev
     ```
+4. **Trust certificate on devices:**
+    - Desktop: In Chrome browser visit https://localhost:8000 and accept warning
+    - Headset: In Quest browser visit https://your-ip-address:8000 and accept warning
 
-2. **Check your local IP address by running**:
+5. **Navigate to the scene**:
+    To navigate to the scene, go to your browser (either on laptop or XR headset) and type: https://your-ip-address:8081/ and accept warning.
+
+6. **Test update position function**:
+    Open the third terminal and type (you need to first open the front and back end) 
     ```bash
-    ifconfig | grep "inet " | grep -v 127.0.0.1
-    ```
-    For example, 10.21.18.95 is my IP address. 
-
-3. **Navigate to the example**:
-    To navigate to the scene, go to your browser (either on laptop or XR headset) and type: https://your-ip-address:8081/.
-
-4. **Test update position function**:
-    Open the third terminal and type
-    ```bash
-    curl -X POST "http://localhost:8000/scene/update-position?object_id=chair_01&x=0.4&y=-1&z=-1.5"
+    curl -k -X POST "https://localhost:8000/scene/update-position?object_id=chair_01&x=0.4&y=-1&z=-1"
     ```
     The chair with id "chair_01" will move to position {x: 0.4, y: -1, z: -1.5}, similar pattern for rotation function.
 

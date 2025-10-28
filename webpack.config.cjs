@@ -77,12 +77,12 @@ const frontendConfig = {
 
       // IGNORE sceneData.json changes
       watchFiles: {
-        paths: ['webXR/**/*'],
+        paths: ['middleware/**/*'],
         options: {
           ignored: [
             '**/sceneData.json',
-            'webXR/sceneData.json',
-            path.resolve(__dirname, 'webXR/sceneData.json')
+            'middleware/sceneData.json',
+            path.resolve(__dirname, 'middleware/sceneData.json')
           ], // Don't reload when sceneData.json changes
         },
       },
@@ -111,8 +111,7 @@ const backendConfig = {
     name: 'backend',
     entry: {
       // main server entry point - adjust as needed
-      server: './server/main.js', 
-      droneControl: './server/MASControl.js',
+      server: './proxy/main.js', 
     },
     output: {
       filename: '[name].js',
@@ -123,7 +122,7 @@ const backendConfig = {
     plugins: [
       new CopyPlugin({
         patterns: [
-          { from: 'server/client.js', to: './' },
+          { from: 'proxy/client.js', to: './' },
           // Copy any additional server files that need to be in dist
           // but aren't part of the webpack bundling process
         ],

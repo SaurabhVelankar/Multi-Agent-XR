@@ -437,13 +437,15 @@ class LanguageAgent:
         except Exception as e:
             print(f"Object categorization error: {e}")
             return {}
-        
 
+ 
+''' 
 def categorize_prompt(prompt):
     categorized_prompt = LanguageAgent()
     return categorized_prompt.categorize_user_reference(prompt), categorized_prompt.categorize_object(prompt), categorized_prompt.categorize_action(prompt), categorized_prompt.categorize_spatial_relationship(prompt), categorized_prompt.categorize_global_scene(prompt)
-
+'''
+# Test
 # print(categorize_prompt("place coffee between that table and me"))
-print(categorize_prompt("rotate the chair sixty degrees"))
+# print(categorize_prompt("rotate the chair sixty degrees"))
 # print(categorize_prompt("grab that apple and place it on my hand"))
 # print(categorize_prompt("create a new kitchen!"))
