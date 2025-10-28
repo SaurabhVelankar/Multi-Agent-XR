@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="./docs/images/title_image.png" />
+    <img src="./docs/images (for README and experiment)/title_image.png" />
 </p>
 
 ## Multi-Agent-XR
@@ -53,7 +53,7 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
 5. **Navigate to the scene**:
     To navigate to the scene, go to your browser (either on laptop or XR headset) and type: https://your-ip-address:8081/ for headset while https://localhost:8081/ for laptop browser, and accept warning.
     <p align="center">
-    <img src="./docs/images/scene_image.png" />
+    <img src="./docs/images (for README and experiment)/scene_image.png" />
     </p>
 
 6. **Test update position function**:
@@ -63,12 +63,21 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
     ```
     The chair with id "chair_01" will move to position {x: -0.4, y: 0, z: -2} and will be broadcasted to all clients connected, similar pattern for rotation function.
     <p align="center">
-    <img src="./docs/images/scene_position_update.png" />
+    <img src="./docs/images (for README and experiment)/scene_position_update.png" />
     </p>
 
 
 ## Install Immersive Web Emulator extension
 Navigate to: https://chromewebstore.google.com/detail/immersive-web-emulator/cgffilbpcibhmcfbgggfhfolhkfbhmik?hl=en&pli=1 to install the extension for your Chrome browser.
 
-## Relevant reading resources
-To understand the idea of the whole project, go to *docs* folder and find *Research Proposal v1.pdf*. To find related articles, go to *Articles* folder under *docs*. The *note* file contains links to some websites that I think useful to the development of this project.
+## Relevant Resources (in docs folder)
+1. **To understand the idea of the whole project:** go to 
+    - */learningMaterial/Research Proposal.pdf* file
+2. **To find related articles:** go to 
+    - */learningMaterial/Articles* folder
+3. **To find some useful learning resources and understand code archetecture:** go to   
+    - */learningMaterial/myResearchNote.txt* file
+4. **To try with ML prototype or do your own experiment:** go to
+    - */jupyterNotebook (for prototype)* folder
+5. **To keep some historical version of codes:** store your code (in .txt format) in
+    - */historicalCodes* folder
