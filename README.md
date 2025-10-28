@@ -28,8 +28,7 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
     ```bash
     ifconfig | grep "inet " | grep -v 127.0.0.1
     ```
-    For example, 12.34.56.789 is my IP address. 
-
+    
 2. **Gather SSL certificate by running**: (you need to run this command everytime you change your IP address)
     ```bash
     cd backEnd
@@ -41,12 +40,10 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
 3. **Open the terminal in the root project folder**:
     if you just want to test the backend, open terminal in *backEnd* folder, run 
     ```bash
-    uvicorn main:app --host 0.0.0.0 --port 8000 \
-        --ssl-keyfile=key.pem --ssl-certfile=cert.pem
+    python main.py
     ```
     if you just want to test the frontend, open another terminal, navigate to the project root folder and run
     ```bash
-    cd Multi-Agent-XR
     npm run dev
     ```
 4. **Trust certificate on devices:**

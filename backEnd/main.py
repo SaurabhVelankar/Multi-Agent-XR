@@ -7,6 +7,9 @@ from __init__ import LanguageAgent, SceneAgent, AssetAgent, CodeAgent, Verificat
 from database import Database
 import uvicorn
 import json
+import ssl
+
+
 
 '''Server side code with WebSocket support'''
 app = FastAPI(title = "XR Multi-Agent Spatial System")
@@ -153,7 +156,13 @@ async def update_rotation(object_id: str, x: float, y:float, z: float):
     raise HTTPException(status_code=404, detail="Object not found")
 
 if __name__ == "__main__":
-    uvicorn.run(app, 
-                host="0.0.0.0", 
-                port=8000,
-                )
+    # configure ssl
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+
+    uvicorn.run(
+        app, 
+        host="0.0.0.0", 
+        port=8000,
+        ssl_keyfile='./key.pem',
+        ssl_certfile='./cert.pem'
+        )
