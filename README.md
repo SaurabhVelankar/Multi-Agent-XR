@@ -30,7 +30,7 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
     ```
     For example, 12.34.56.789 is my IP address. 
 
-2. **Gather SSL certificate by running**:
+2. **Gather SSL certificate by running**: (you need to run this command everytime you change your IP address)
     ```bash
     cd backEnd
     openssl req -x509 -newkey rsa:4096 -nodes \
@@ -62,7 +62,7 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
     ```bash
     curl -k -X POST "https://localhost:8000/scene/update-position?object_id=chair_01&x=0.4&y=-1&z=-1"
     ```
-    The chair with id "chair_01" will move to position {x: 0.4, y: -1, z: -1.5}, similar pattern for rotation function.
+    The chair with id "chair_01" will move to position {x: 0.4, y: -1, z: -1}, similar pattern for rotation function.
 
 ## Install Immersive Web Emulator extension
 Navigate to: https://chromewebstore.google.com/detail/immersive-web-emulator/cgffilbpcibhmcfbgggfhfolhkfbhmik?hl=en&pli=1 to install the extension for your Chrome browser.
