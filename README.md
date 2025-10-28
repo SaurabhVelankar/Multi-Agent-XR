@@ -39,13 +39,12 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
     ```
 
 3. **Open the terminal in the root project folder**:
-    if you just want to open and test the backend run 
+    if you just want to test the backend, open terminal in *backEnd* folder, run 
     ```bash
-    cd backEnd
     uvicorn main:app --host 0.0.0.0 --port 8000 \
         --ssl-keyfile=key.pem --ssl-certfile=cert.pem
     ```
-    if you just want to open and test the frontend, open another terminal, navigate to the project root folder and run
+    if you just want to test the frontend, open another terminal, navigate to the project root folder and run
     ```bash
     cd Multi-Agent-XR
     npm run dev
@@ -56,13 +55,16 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
 
 5. **Navigate to the scene**:
     To navigate to the scene, go to your browser (either on laptop or XR headset) and type: https://your-ip-address:8081/ and accept warning.
+    <p align="center">
+    <img src="./docs/images/scene_image.png" />
+    </p>
 
 6. **Test update position function**:
     Open the third terminal and type (you need to first open the front and back end) 
     ```bash
     curl -k -X POST "https://localhost:8000/scene/update-position?object_id=chair_01&x=0.4&y=-1&z=-1"
     ```
-    The chair with id "chair_01" will move to position {x: 0.4, y: -1, z: -1}, similar pattern for rotation function.
+    The chair with id "chair_01" will move to position {x: 0.4, y: -1, z: -1} and will be broadcasted to all clients connected, similar pattern for rotation function.
 
 ## Install Immersive Web Emulator extension
 Navigate to: https://chromewebstore.google.com/detail/immersive-web-emulator/cgffilbpcibhmcfbgggfhfolhkfbhmik?hl=en&pli=1 to install the extension for your Chrome browser.
