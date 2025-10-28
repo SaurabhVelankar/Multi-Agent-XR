@@ -51,7 +51,7 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
     - Headset: In Quest browser visit https://your-ip-address:8000 and accept warning
 
 5. **Navigate to the scene**:
-    To navigate to the scene, go to your browser (either on laptop or XR headset) and type: https://your-ip-address:8081/ and accept warning.
+    To navigate to the scene, go to your browser (either on laptop or XR headset) and type: https://your-ip-address:8081/ for headset while https://localhost:8081/ for laptop browser, and accept warning.
     <p align="center">
     <img src="./docs/images/scene_image.png" />
     </p>
@@ -59,9 +59,13 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
 6. **Test update position function**:
     Open the third terminal and type (you need to first open the front and back end) 
     ```bash
-    curl -k -X POST "https://localhost:8000/scene/update-position?object_id=chair_01&x=0.4&y=-1&z=-1"
+    curl -k -X POST "https://localhost:8000/scene/update-position?object_id=chair_01&x=-0.4&y=0&z=-2"
     ```
-    The chair with id "chair_01" will move to position {x: 0.4, y: -1, z: -1} and will be broadcasted to all clients connected, similar pattern for rotation function.
+    The chair with id "chair_01" will move to position {x: -0.4, y: 0, z: -2} and will be broadcasted to all clients connected, similar pattern for rotation function.
+    <p align="center">
+    <img src="./docs/images/scene_position_update.png" />
+    </p>
+
 
 ## Install Immersive Web Emulator extension
 Navigate to: https://chromewebstore.google.com/detail/immersive-web-emulator/cgffilbpcibhmcfbgggfhfolhkfbhmik?hl=en&pli=1 to install the extension for your Chrome browser.
