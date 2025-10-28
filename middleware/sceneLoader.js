@@ -81,6 +81,16 @@ export class SceneQuery {
         return false;
     }
 
+    // Update object rotation
+    updateObjectRotation(id, newRotation) {
+        const obj = this.getObjectById(id);
+        if (obj) {
+            obj.rotation = {...obj.rotation, ...newRotation };
+            return true;
+        }
+        return false;
+    }
+
     // Add new object (for asset agent)
     addObject(objectData) {
         this.db.objects.push(objectData);

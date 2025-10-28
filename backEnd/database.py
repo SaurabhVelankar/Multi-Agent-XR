@@ -221,6 +221,13 @@ class Database:
         if obj:
             obj['rotation'].update(new_rotation)
             print(f"Updated {obj['name']} rotation to {new_rotation}")
+
+            # Broadcast via WebSocket
+            self._broadcast_update('object_rotation_updated', {
+                'objectId': object_id,
+                'position': new_rotation,
+                'name': obj['name']
+            })
             return True
         return False
         

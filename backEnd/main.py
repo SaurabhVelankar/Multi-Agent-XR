@@ -133,6 +133,25 @@ async def update_position(object_id: str, x: float, y:float, z: float):
 
     raise HTTPException(status_code=404, detail="Object not found")
 
+@app.post("/scene/update-rotation")
+async def update_rotation(object_id: str, x: float, y:float, z: float):
+    """Update object rotation and broadcast to all clients"""
+    success = scene_database.update_object_rotation(
+        object_id,
+        {"x": x, "y": y, "z": z}
+    )
+    if success:
+        obj = scene_database.get_object_by_id(object_id)
+        # Broadcast to all connected WebSocket clients
+        await broadcast_scene_update('object_rotation_updated', {
+            'objectId': object_id,
+            'rotation': {'x': x, 'y': y, 'z': z},
+            'name': obj['name'] if obj else 'unknown'
+        }) 
+        return {"status": "success", "objectId": object_id}
+    
+    raise HTTPException(status_code=404, detail="Object not found")
+
 if __name__ == "__main__":
     uvicorn.run(app, 
                 host="0.0.0.0", 
