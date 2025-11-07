@@ -48,4 +48,8 @@ export function setupWebSocket(objectsMap) {
     console.log('🔌 WebSocket disconnected, reconnecting...');
     setTimeout(() => setupWebSocket(loadedObjects), 3000); // Auto-reconnect
   };
+
+
+  // Return websocket for its usage of head-tracking
+  return ws;
 }

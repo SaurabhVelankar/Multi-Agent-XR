@@ -7,11 +7,18 @@ import { gsap } from 'gsap';
 import { init } from './init.js';
 import { loadSceneDatabase, getSceneDatabase, SceneQuery } from '../middleware/sceneLoader.js';
 import { setupWebSocket } from '../middleware/wsManager.js';
+import { initHeadTracking, startHeadTracking, updateHeadTracking } from '../middleware/sceneControl.js';
+
 
 // Global scene query interface for agents
 let sceneQuery;
 let loadedObjects = new Map(); // Maps object IDs to THREE.js objects
 let sceneDatabase;
+let websocket;
+let xrReferenceSpace = null;
+let userAvatar = null;
+
+
 
 async function setupScene({ scene, camera, renderer, player, controllers }) {
   // Load scene database from JSON
@@ -34,6 +41,9 @@ async function setupScene({ scene, camera, renderer, player, controllers }) {
   // Setup lighting from database
   loadLighting(scene);
 
+  // Load user avatar
+  loadUserAvatar(camera);
+
   // Make sceneQuery globally accessible for agents
   window.sceneQuery = sceneQuery;
   window.loadedObjects = loadedObjects;
@@ -41,8 +51,24 @@ async function setupScene({ scene, camera, renderer, player, controllers }) {
 
   console.log('✅ Scene loaded from JSON with', sceneDatabase.objects.length, 'objects');
 
+
+  // head tracking
   // Add websocket
-  setupWebSocket(loadedObjects);
+  websocket = setupWebSocket(loadedObjects);
+  initHeadTracking(websocket);
+
+  renderer.xr.addEventListener('sessionstart', async() =>{
+    console.log('🥽 XR session started');
+    const session = renderer.xr.getSession();
+    xrReferenceSpace = await session.requestReferenceSpace('local');
+    startHeadTracking();
+  });
+
+  renderer.xr.addEventListener('sessioned', () => {
+    console.log('🥽 XR session ended');
+    xrReferenceSpace = null;
+  });
+
 }
 
 /**
@@ -191,11 +217,40 @@ function loadLighting(scene) {
   });
 }
 
+/**
+ * Load user avatar function
+ */
+function loadUserAvatar(camera){
+  const gltfLoader = new GLTFLoader();
+  gltfLoader.load(
+    '/assets/gltf-glb-models/sun/sun.glb',
+    (gltf) => {
+      userAvatar = gltf.scene;
+      userAvatar.scale.set(0.01, 0.01, 0.01);
+      userAvatar.position.set(0, 0.05, -0.05);
+      camera.add(userAvatar);
+      console.log('✓ User avatar loaded');
+    },
+    undefined,
+    (error) => {
+      console.error('✗ Error loading user avatar:', error);
+    }
+  );
+}
+
 // Animation function
 function onFrame(delta, time, { scene, camera, renderer, player, controllers }) {
   // Add any per-frame logic here
   // For example, update spatial relationships based on user position
   gsap.ticker.tick();
+
+  // Update head tracking every frame while in XR
+  if (renderer.xr.isPresenting && xrReferenceSpace) {
+    const frame = renderer.xr.getFrame();
+    if (frame){
+      updateHeadTracking(frame, xrReferenceSpace);
+    }
+  }
 }
 
 init(setupScene, onFrame);
