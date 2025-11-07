@@ -94,7 +94,7 @@ export function updateHeadTracking(frame, referenceSpace){
 
   if (!pose) { return; }
 
-  // debugg
+  // debugg for seeing user head position
   // console.log('Transform:', pose.transform);
   // console.log('Position:', pose.transform?.position);
 

@@ -221,13 +221,14 @@ function loadLighting(scene) {
  * Load user avatar function
  */
 function loadUserAvatar(camera){
+  /*
   const gltfLoader = new GLTFLoader();
   gltfLoader.load(
     '/assets/gltf-glb-models/sun/sun.glb',
     (gltf) => {
       userAvatar = gltf.scene;
       userAvatar.scale.set(0.01, 0.01, 0.01);
-      userAvatar.position.set(0, 0.05, -0.05);
+      userAvatar.position.set(0, 0.01, -0.1);
       camera.add(userAvatar);
       console.log('✓ User avatar loaded');
     },
@@ -236,6 +237,25 @@ function loadUserAvatar(camera){
       console.error('✗ Error loading user avatar:', error);
     }
   );
+  */
+  
+  // for lower render cost
+  const avatarGeometry = new THREE.SphereGeometry(0.02);
+  const avatarMaterial = new THREE.MeshStandardMaterial({ 
+    color: 'green', 
+    emissive: 0x440000, // glow effect
+    roughness: 0.3,
+    metalness: 0.2
+  });
+  userAvatar = new THREE.Mesh(avatarGeometry, avatarMaterial);
+  userAvatar.position.set(0, 0.05, -0.3); // Remove scale line
+  userAvatar.scale.set(0.5, 0.5, 0.5);
+  camera.add(userAvatar);
+  
+  
+  
+  console.log('✓ User avatar loaded');
+  
 }
 
 // Animation function
