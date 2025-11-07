@@ -217,9 +217,11 @@ if __name__ == "__main__":
     agent = LanguageAgent()
     
     test_cases = [
-        "change the layout to make the room looks clear",
-        "clean the room",
-        "move the chair a little forward"
+        #"change the layout to make the room looks clear",
+        #"clean the room",
+        "move the chair a little forward",
+        "turn the chair to the left",
+        "rotate the chair by 90 degrees"
 
     ]
 
