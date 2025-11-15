@@ -23,18 +23,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+
+# Initialize scene database
+scene_database = Database()
+
 # Initialize specialized agents
 language_agent = LanguageAgent()
 scene_agent = SceneAgent()
 asset_agent = AssetAgent()
-code_agent = CodeAgent()
-verification_agent = VerificationAgent()
+code_agent = CodeAgent(scene_database)
+verification_agent = VerificationAgent(scene_database)
 
 # Initialize orchestration agent
-orchestration_agent = Orchestrator()
-
-# Initialize scene database
-scene_database = Database()
+orchestration_agent = Orchestrator(language_agent, 
+                                   scene_agent, 
+                                   code_agent, 
+                                   verification_agent,
+                                   scene_database)
 
 # WebSocket connection manager
 class ConnectionManager:

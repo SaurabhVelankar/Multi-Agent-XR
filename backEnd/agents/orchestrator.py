@@ -7,11 +7,12 @@ import sys
 # Add backEnd directory to Python path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from languageAgent import LanguageAgent
-from verificationAgent import VerificationAgent
-from codeAgent import CodeAgent
-from sceneAgent import SceneAgent
+# from languageAgent import LanguageAgent
+#from verificationAgent import VerificationAgent
+#from codeAgent import CodeAgent
+#from sceneAgent import SceneAgent
 from database import Database
+from __init__ import LanguageAgent, SceneAgent, AssetAgent, CodeAgent, VerificationAgent
 
 class Orchestrator:
     """
@@ -141,11 +142,13 @@ if __name__ == "__main__":
     
     # Test commands
     test_commands = [
-        "move the chair a little forward",
         
+        
+        "move the chair to the right"
     ]
     '''
-    "rotate the table 90 degrees",
+        "rotate the table 90 degrees",
+        "move the chair a little forward",
         "move the chair to the right"
     '''
     

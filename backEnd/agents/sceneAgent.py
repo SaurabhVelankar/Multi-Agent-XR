@@ -277,13 +277,7 @@ if __name__ == "__main__":
             'reference_point': 'user',
             'amount': 'a little'
         },
-        {
-            'action': 'rotate',
-            'target_object': 'table',
-            'spatial_relation': 'none',
-            'reference_point': 'none',
-            'amount': '90 degrees'
-        },
+        
         {
             'action': 'let',
             'target_object': 'chair',
@@ -299,13 +293,12 @@ if __name__ == "__main__":
         
         
         {
-            'action': 'move',
-            'target_object': 'chair',
-            'spatial_relation': 'forward',
-            'reference_point': 'user',
-            'amount': 'a little'
+            'action': 'rotate',
+            'target_object': 'table',
+            'spatial_relation': 'none',
+            'reference_point': 'none',
+            'amount': '90 degrees'
         },
-        
         
     ]
     
