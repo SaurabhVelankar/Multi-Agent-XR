@@ -63,7 +63,7 @@ class CodeAgent:
                 "message": "no transformation"
             }
             
-
+        object_name = transformation.get('object_name')
         object_id = transformation.get('object_id')
         position = transformation.get('position')
         rotation = transformation.get('rotation')
@@ -95,6 +95,13 @@ class CodeAgent:
                 success= success and self.database.update_object_rotation(object_id, rotation)
                 print(f"✓ Rotation updated: {rotation}")
 
+            return {
+                "success": success,
+                "object_id": object_id,
+                "action": action,
+                "message": "Transformation executed successfully" if success else "Update failed"
+            }
+
 
                     
         except Exception as e:
@@ -106,6 +113,7 @@ class CodeAgent:
                 "message": f"Execution error: {str(e)}"
             }
     
+    '''
     def validate_transformation (self, transformation: Dict) -> bool:
         """
         Validate a transformation before execution.
@@ -138,17 +146,15 @@ class CodeAgent:
             return False
         
         return True
+    '''
+
 
 
 
 # Test
 if __name__ == "__main__":
-    from database import Database
-    
-    # Initialize database
+
     db = Database()
-    
-    # Initialize code agent
     agent = CodeAgent(db)
     
     # Test transformation
@@ -163,9 +169,9 @@ if __name__ == "__main__":
     result = agent.execute_transformation(test_transformation)
     
     # Test validation
-    print("\n🧪 Testing validation...")
-    is_valid = agent.validate_transformation(test_transformation)
-    print(f"Valid: {is_valid}")
+    # print("\n🧪 Testing validation...")
+    # is_valid = agent.validate_transformation(test_transformation)
+    # print(f"Valid: {is_valid}")
 
 
             

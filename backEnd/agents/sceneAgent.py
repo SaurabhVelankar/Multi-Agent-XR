@@ -283,12 +283,7 @@ if __name__ == "__main__":
             'spatial_relation': 'none',
             'reference_point': 'none',
             'amount': '90 degrees'
-        }
-        '''
-    
-    # Test commands
-    test_commands = [
-        
+        },
         {
             'action': 'let',
             'target_object': 'chair',
@@ -296,7 +291,20 @@ if __name__ == "__main__":
             'reference_point': 'table',
             'amount': None
         },
+        '''
+    
+    # Test commands
+    test_commands = [
         
+        
+        
+        {
+            'action': 'move',
+            'target_object': 'chair',
+            'spatial_relation': 'forward',
+            'reference_point': 'user',
+            'amount': 'a little'
+        },
         
         
     ]
