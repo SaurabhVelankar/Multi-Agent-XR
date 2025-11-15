@@ -267,9 +267,9 @@ if __name__ == "__main__":
         'x': 0, 'y': 0, 'z': 0,
         'rotation': {'x': 0, 'y': 0, 'z': 0}
     }
-    
-    # Test commands
-    test_commands = [
+
+
+    '''
         {
             'action': 'move',
             'target_object': 'chair',
@@ -278,19 +278,27 @@ if __name__ == "__main__":
             'amount': 'a little'
         },
         {
-            'action': 'place',
-            'target_object': 'chair',
-            'spatial_relation': 'next_to',
-            'reference_point': 'table',
-            'amount': None
-        },
-        {
             'action': 'rotate',
             'target_object': 'table',
             'spatial_relation': 'none',
             'reference_point': 'none',
             'amount': '90 degrees'
         }
+        '''
+    
+    # Test commands
+    test_commands = [
+        
+        {
+            'action': 'let',
+            'target_object': 'chair',
+            'spatial_relation': 'next_to',
+            'reference_point': 'table',
+            'amount': None
+        },
+        
+        
+        
     ]
     
     for i, cmd in enumerate(test_commands, 1):
