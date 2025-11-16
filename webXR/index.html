@@ -200,6 +200,10 @@
 		
 		<script>
 			// Natural Language Command Functions
+
+			const API_BASE_URL = `${window.location.protocol}//${window.location.hostname}:8000`;
+			console.log('🔧 API URL:', API_BASE_URL);
+
 			async function executeCommand() {
 				const input = document.getElementById('command-input');
 				const statusDiv = document.getElementById('status');
@@ -214,7 +218,7 @@
 				updateStatus(`⏳ Processing: "${command}"...`, 'processing');
 				
 				try {
-					const response = await fetch('https://localhost:8000/scene/command', {
+					const response = await fetch(`${API_BASE_URL}/scene/command`, {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json'
