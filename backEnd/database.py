@@ -174,6 +174,7 @@ class Database:
         _____________________________________________________________
     """
 
+    '''
     def _broadcast_update(self, update_type: str, data: Dict):
         """Broadcast update via FastAPI WebSocket if available"""
         if self.app and hasattr(self.app.state, 'manager'):
@@ -183,6 +184,35 @@ class Database:
                 self.app.state.broadcast(update_type, data)
             )
             loop.close()
+    '''
+    def _broadcast_update(self, update_type: str, data: Dict):
+        """Broadcast update via FastAPI WebSocket if available"""
+        if not self.app or not hasattr(self.app.state, 'manager'):
+            return
+        
+        try:
+            # Try to get the running event loop (FastAPI context)
+            loop = asyncio.get_running_loop()
+            
+            # We're in an async context - create a task
+            loop.create_task(
+                self.app.state.broadcast(update_type, data)
+            )
+            
+        except RuntimeError:
+            # No running loop - we're in sync context (terminal)
+            # Create a temporary event loop
+            try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(
+                    self.app.state.broadcast(update_type, data)
+                )
+            except Exception as e:
+                print(f"⚠️ Broadcast failed in sync context: {e}")
+            finally:
+                loop.close()
+                asyncio.set_event_loop(None)
 
     def update_object_position(self, 
                                object_id: str, 
@@ -225,7 +255,7 @@ class Database:
             # Broadcast via WebSocket
             self._broadcast_update('object_rotation_updated', {
                 'objectId': object_id,
-                'position': new_rotation,
+                'rotation': new_rotation,
                 'name': obj['name']
             })
             return True

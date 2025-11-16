@@ -26,7 +26,7 @@ app.add_middleware(
 
 
 # Initialize scene database
-scene_database = Database()
+scene_database = Database(app=app)
 
 # Initialize specialized agents
 language_agent = LanguageAgent()
@@ -160,6 +160,40 @@ async def update_rotation(object_id: str, x: float, y:float, z: float):
         return {"status": "success", "objectId": object_id}
     
     raise HTTPException(status_code=404, detail="Object not found")
+
+@app.post("/scene/command")
+async def process_natural_language_command(command: str):
+    """
+    Process natural language command through the multi-agent system
+    
+    Args:
+        command: Natural language command (e.g., "move the chair forward")
+    
+    Returns:
+        Result of command execution with updated object state
+    """
+    try:
+        # Process command through orchestrator
+        success = orchestration_agent.process_command(command)
+        
+        if success:
+            return {
+                "status": "success",
+                "command": command,
+                "message": "Command executed successfully"
+            }
+        else:
+            raise HTTPException(
+                status_code=400, 
+                detail="Failed to execute command"
+            )
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing command: {str(e)}"
+        )
+    
 
 if __name__ == "__main__":
     # configure ssl
