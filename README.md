@@ -57,15 +57,7 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
     </p>
 
 6. **Test update position function**:
-    Open the third terminal and type (you need to first open the front and back end) 
-    ```bash
-     curl -k -X POST "https://localhost:8000/scene/command?command=turn%20the%20chair%20to%20right%20by%2090%20degrees"
-    ```
-    The chair with id "chair_01" will turn right by 90 degrees with regard to the user position and will be broadcasted to all clients connected, similar pattern for rotation function.
-    ```bash
-    {"status":"success","command":"turn the chair to right by 90 degrees","message":"Command executed successfully"}%   
-    ```
-    now it can take any natural language and do the spatial operation with multi-agent system setup.
+    In the browser there is a chat box that you can type the command to manipulate the scene. Now it can take any natural language and do the spatial operation with multi-agent system setup.
 
 
 ## Install Immersive Web Emulator extension

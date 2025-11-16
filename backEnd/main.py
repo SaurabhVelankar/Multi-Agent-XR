@@ -9,7 +9,9 @@ import uvicorn
 import json
 import ssl
 
-
+class CommandRequest(BaseModel):
+    command: str
+    user_position: Optional[Dict[str, float]] = None
 
 '''Server side code with WebSocket support'''
 app = FastAPI(title = "XR Multi-Agent Spatial System")
@@ -161,6 +163,7 @@ async def update_rotation(object_id: str, x: float, y:float, z: float):
     
     raise HTTPException(status_code=404, detail="Object not found")
 
+'''
 @app.post("/scene/command")
 async def process_natural_language_command(command: str):
     """
@@ -193,7 +196,48 @@ async def process_natural_language_command(command: str):
             status_code=500,
             detail=f"Error processing command: {str(e)}"
         )
+'''
+
+@app.post("/scene/command")
+async def process_natural_language_command(request: CommandRequest):
+    """
+    Process natural language command through the multi-agent system
     
+    Body:
+        {
+            "command": "move the chair forward",
+            "user_position": {"x": 0, "y": 0, "z": 0}  // optional
+        }
+    """
+    try:
+        # Update user position if provided from VR headset
+        if request.user_position:
+            orchestration_agent.user_position = request.user_position
+        
+        # Process command through orchestrator
+        success = orchestration_agent.process_command(request.command)
+        
+        if success:
+            # Save changes to database file
+            # scene_database.save()
+            
+            return {
+                "status": "success",
+                "command": request.command,
+                "message": "Command executed successfully"
+            }
+        else:
+            raise HTTPException(
+                status_code=400, 
+                detail="Failed to execute command"
+            )
+    
+    except Exception as e:
+        print(f"❌ Error in /scene/command: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing command: {str(e)}"
+        )
 
 if __name__ == "__main__":
     # configure ssl

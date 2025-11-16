@@ -54,6 +54,7 @@ class Database:
             print(f"❌ Invalid JSON in scene file: {e}")
             raise
     
+    '''
     def save(self, filepath: str = None):
         """
         Save current scene state back to JSON file
@@ -70,7 +71,7 @@ class Database:
         except Exception as e:
             print(f"❌ Failed to save scene: {e}")
             raise
-
+    '''
     
     """ _____________________________________________________________
         Query Methods: basic functionalities of a database
