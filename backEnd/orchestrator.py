@@ -1,18 +1,18 @@
 import google.generativeai as genai
 import json
 import os
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, TypedDict
+from typing_extensions import Literal
 from pathlib import Path
 import sys
+from langgraph.graph import StateGraph, END
 # Add backEnd directory to Python path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-# from languageAgent import LanguageAgent
-#from verificationAgent import VerificationAgent
-#from codeAgent import CodeAgent
-#from sceneAgent import SceneAgent
-from database import Database
+
 from __init__ import LanguageAgent, SceneAgent, AssetAgent, CodeAgent, VerificationAgent
+from database import Database
+from state import MASState
 
 class Orchestrator:
     """
@@ -34,6 +34,8 @@ class Orchestrator:
         
         # Initialize
         # self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
+        self.workflow =self._build_graph()
+        self.app = self.workflow.compile()
 
         self.language_agent = language_agent
         self.scene_agent =  scene_agent
@@ -49,6 +51,113 @@ class Orchestrator:
                 'x': 0, 'y': 0, 'z': 0,
                 'rotation': {'x': 0, 'y': 0, 'z': 0}
             }
+
+    def _build_graph(self) -> StateGraph:
+        """Build the LangGraph workflow"""
+        workflow = StateGraph(MASState)
+
+        # Add nodes
+       
+        workflow.add_node("parse_decider", self._parse_and_decide)
+        workflow.add_node("scene_agent", self._scene_node)
+        workflow.add_node("asset_agent", self._asset_node)
+        workflow.add_node("verification_agent", self._verification_node)
+        workflow.add_node("verify_collision", self._collision_node)
+        workflow.add_node("execution_agent", self._execution_node)
+        workflow.add_node("handle_placement", self._placement_node)
+        # Tentative
+        workflow.add_node("memory", self._memory_node)
+        
+        # Set entry point
+        workflow.set_entry_point("parse_decider")
+
+        # Add conditional routing from parse_decider
+        workflow.add_conditional_edges(
+            "parse_decider",
+            self._route_command,
+            {
+                "asset_agent": "asset_agent",
+                "scene_agent": "scene_agent",
+                "memory": "memory"
+            }
+        )
+
+        # Case: ADD/DELETE path
+        workflow.add_edge("asset_agent", "scene_agent")
+        # Case: Vague/Complex path
+        workflow.add_edge("memory", "asset_agent")
+        workflow.add_edge("memory", "scene_agent")
+
+        # verification phase
+        workflow.add_edge("scene_agent", "verification_agent")
+
+        # Execution phase
+        workflow.add_edge("verification_agent", "execution_agent")
+
+        # Conditional: iterate or end
+        workflow.add_conditional_edges(
+            "verification_agent",
+            self._check_verification_result,
+            {
+                "execution_agent": "execution_agent", # No collision -> continue
+                "scene_agent": "scene_agent", # Collision detected -> iterate back
+            }
+        )
+
+
+        return workflow
+
+
+        
+            
+
+
+    def _route_command(self, state: MASState) -> Literal["asset_agent", 
+                                                         "scene_agent",
+                                                         "memory"]:
+        """Route based on command type"""
+        if state["command_type"] == "ADD/DELETE":
+            return "asset_agent"
+        elif state["command_type"] == "POS/ROTATE":
+            return "scene_agent"
+        else:  # Vague/Complex
+            return "memory"
+
+    def _check_verification_result(state: MASState):
+            """Decide what to do based on verification result"""
+            if state["verification_result"]["has_collision"]:
+                if state["retry_count"] < state["max_retries"]:
+                    return "scene_agent"  # Loop back to retry
+                else:
+                    return "conflict_resolution"  # Too many retries, need help (human suggestion)
+            else:
+                return "handle_placement" # All good, proceed                                                          
+
+    def _parse_and_decide(self):
+        return 0
+    
+    def _scene_node(self):
+        return 0
+    
+    def _asset_node(self):
+        return 0
+    
+    def _verification_node(self):
+        return 0
+    
+    def _collision_node(self):
+        return 0
+    
+    def _execution_node(self):
+        return 0
+    
+    def _placement_node(self):
+        return 0
+    
+    def _memory_node(self):
+        return 0
+        
+
     
     def process_command (self, user_prompt: str) -> bool:
         """
