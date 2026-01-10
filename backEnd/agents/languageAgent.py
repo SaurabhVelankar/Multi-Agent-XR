@@ -9,65 +9,194 @@ class LanguageAgent:
     
     def parse_prompt(self, prompt: str) -> dict:
         """
-        Parse natural language prompt into structured command.
-        Does NOT need user_state - that's Scene Agent's job.
+        Parse & Decide: Analyze command for routing WITHOUT losing semantic information.
+        
+        Returns enriched analysis that preserves the original prompt's full context
+        for downstream agents to interpret with their specialized knowledge.
         """
         
-        system_prompt = """You are a spatial command parser. 
-        Parse user commands into JSON format:
+        system_prompt = """You are a command analyzer for a spatial reasoning system.
+        
+        Analyze user commands and output JSON with:
+        
         {
-            "action": "place" | "move" | "rotate" | "add" | "remove",
-            "target_object": "chair" | "table" | "cup" | etc,
-            "spatial_relation": "next_to" | "in_front_of" | "behind" | "on" | "between" | "forward" | "backward" | "left" | "right" | "none",
-            "reference_point": "user" | <object_name> | "none",
-            "secondary_reference": "user" | <object_name> | null,
-            "amount": <number> | "a little" | "a lot" | "slightly" | null
+            "original_prompt": <exact user prompt - preserve this!>,
+            "command_type": "ADD/DELETE" | "POS/ROTATE" | "Vague/Complex",
+            "involved_objects": [list of all objects mentioned],
+            "spatial_concepts": [key spatial relationships - keep natural language!],
+            "intent_summary": <high-level goal in natural language>,
+            "action_hints": {
+                "primary_action": "place" | "move" | "rotate" | "add" | "remove" | "arrange",
+                "requires_asset_selection": true | false,
+                "requires_spatial_reasoning": true | false
+            }
         }
         
-        IMPORTANT RULES:
-        - "me", "my", "I", "here" → use "user"
-        - "that table", "the sofa" → use object name without "that"/"the"
-        - For "between X and Y" → reference_point = X, secondary_reference = Y
-        - For rotation: capture degrees/amount (e.g., "90 degrees" → amount: "90 degrees")
-        - For movement: capture distance/amount (e.g., "a little" → amount: "a little", "2 meters" → amount: "2 meters")
-        - If no amount specified → amount: null
-        - Only output valid JSON, no extra text
+        CLASSIFICATION RULES:
+        
+        "ADD/DELETE":
+        - Creating new objects ("add chair", "place a lamp")
+        - Removing objects ("delete table", "remove the cup")
+        - Focus: Object lifecycle (creation/deletion)
+        
+        "POS/ROTATE":
+        - Moving existing objects ("move chair left", "push table forward")
+        - Rotating objects ("rotate chair 90 degrees", "turn table around")
+        - Single object with clear spatial transformation
+        - Focus: Transform existing object
+        
+        "Vague/Complex":
+        - Multiple objects with interdependencies ("arrange dining setup")
+        - Aesthetic/functional goals ("make room cozy", "create workspace")
+        - Unclear spatial relations ("put things in order")
+        - Ambiguous commands ("organize better", "clean up")
+        - Multi-step arrangements ("reading corner with lamp and chair")
+        - Focus: Requires iterative refinement and holistic reasoning
+        
+        SPATIAL CONCEPTS:
+        - DON'T reduce to simple keywords
+        - PRESERVE the natural language descriptions
+        - Examples: 
+          ✅ "cozy reading corner with lamp next to chair facing window"
+          ❌ "next_to, facing"
+        
+        INTENT SUMMARY:
+        - Capture the high-level goal
+        - What is the user trying to achieve?
+        - Examples:
+          "Create a comfortable reading space"
+          "Rearrange furniture for better flow"
+          "Simple leftward movement of chair"
         
         EXAMPLES:
         
-        Prompt: "place chair next to me"
-        {{"action": "place", "target_object": "chair", "spatial_relation": "next_to", "reference_point": "user", "secondary_reference": null, "amount": null}}
+        Input: "move chair left"
+        {
+            "original_prompt": "move chair left",
+            "command_type": "POS/ROTATE",
+            "involved_objects": ["chair"],
+            "spatial_concepts": ["move left relative to user"],
+            "intent_summary": "Simple leftward movement of chair",
+            "action_hints": {
+                "primary_action": "move",
+                "requires_asset_selection": false,
+                "requires_spatial_reasoning": true
+            }
+        }
         
-        Prompt: "rotate the chair 90 degrees"
-        {{"action": "rotate", "target_object": "chair", "spatial_relation": "none", "reference_point": "none", "secondary_reference": null, "amount": "90 degrees"}}
+        Input: "add a red chair next to the table"
+        {
+            "original_prompt": "add a red chair next to the table",
+            "command_type": "ADD/DELETE",
+            "involved_objects": ["chair", "table"],
+            "spatial_concepts": ["next to table", "red colored chair"],
+            "intent_summary": "Add a red chair with spatial relation to existing table",
+            "action_hints": {
+                "primary_action": "add",
+                "requires_asset_selection": true,
+                "requires_spatial_reasoning": true
+            }
+        }
         
-        Prompt: "move the chair a little forward"
-        {{"action": "move", "target_object": "chair", "spatial_relation": "forward", "reference_point": "user", "secondary_reference": null, "amount": "a little"}}
+        Input: "create a cozy reading corner with a lamp next to the chair facing the window"
+        {
+            "original_prompt": "create a cozy reading corner with a lamp next to the chair facing the window",
+            "command_type": "Vague/Complex",
+            "involved_objects": ["lamp", "chair", "window"],
+            "spatial_concepts": [
+                "cozy reading corner composition",
+                "lamp positioned next to chair",
+                "chair oriented facing window",
+                "aesthetic goal: cozy atmosphere"
+            ],
+            "intent_summary": "Create a functional and aesthetic reading space with proper lighting and window view",
+            "action_hints": {
+                "primary_action": "arrange",
+                "requires_asset_selection": true,
+                "requires_spatial_reasoning": true
+            }
+        }
         
-        Prompt: "move table 2 meters to the left"
-        {{"action": "move", "target_object": "table", "spatial_relation": "left", "reference_point": "user", "secondary_reference": null, "amount": "2 meters"}}
+        Input: "rotate the table 90 degrees"
+        {
+            "original_prompt": "rotate the table 90 degrees",
+            "command_type": "POS/ROTATE",
+            "involved_objects": ["table"],
+            "spatial_concepts": ["rotate 90 degrees clockwise"],
+            "intent_summary": "Rotate table by specific angle",
+            "action_hints": {
+                "primary_action": "rotate",
+                "requires_asset_selection": false,
+                "requires_spatial_reasoning": false
+            }
+        }
         
-        Prompt: "rotate chair slightly"
-        {{"action": "rotate", "target_object": "chair", "spatial_relation": "none", "reference_point": "none", "secondary_reference": null, "amount": "slightly"}}
+        Input: "arrange the dining table with 4 chairs around it and place a vase in the center"
+        {
+            "original_prompt": "arrange the dining table with 4 chairs around it and place a vase in the center",
+            "command_type": "Vague/Complex",
+            "involved_objects": ["dining table", "chairs", "vase"],
+            "spatial_concepts": [
+                "4 chairs arranged around table",
+                "even distribution pattern",
+                "vase as centerpiece on table",
+                "dining setup composition"
+            ],
+            "intent_summary": "Create a complete dining arrangement with table, chairs, and centerpiece",
+            "action_hints": {
+                "primary_action": "arrange",
+                "requires_asset_selection": true,
+                "requires_spatial_reasoning": true
+            }
+        }
         
-        Prompt: "move the table forward"
-        {{"action": "move", "target_object": "table", "spatial_relation": "forward", "reference_point": "user", "secondary_reference": null, "amount": null}}
+        Input: "move the couch away from the wall to make space for the bookshelf"
+        {
+            "original_prompt": "move the couch away from the wall to make space for the bookshelf",
+            "command_type": "Vague/Complex",
+            "involved_objects": ["couch", "wall", "bookshelf"],
+            "spatial_concepts": [
+                "move couch away from wall",
+                "create space behind couch",
+                "implied: bookshelf will occupy the created space"
+            ],
+            "intent_summary": "Rearrange couch to accommodate bookshelf placement behind it",
+            "action_hints": {
+                "primary_action": "move",
+                "requires_asset_selection": false,
+                "requires_spatial_reasoning": true
+            }
+        }
         
-        Prompt: "place coffee between table and me"
-        {{"action": "place", "target_object": "coffee", "spatial_relation": "between", "reference_point": "table", "secondary_reference": "user", "amount": null}}
+        Input: "make the room look more spacious"
+        {
+            "original_prompt": "make the room look more spacious",
+            "command_type": "Vague/Complex",
+            "involved_objects": [],
+            "spatial_concepts": [
+                "increase perceived spaciousness",
+                "optimize furniture arrangement",
+                "aesthetic goal: openness"
+            ],
+            "intent_summary": "Rearrange room layout to maximize perceived space",
+            "action_hints": {
+                "primary_action": "arrange",
+                "requires_asset_selection": false,
+                "requires_spatial_reasoning": true
+            }
+        }
         
-        Prompt: "put cup on my desk"
-        {{"action": "place", "target_object": "cup", "spatial_relation": "on", "reference_point": "desk", "secondary_reference": null, "amount": null}}
+        CRITICAL: Always preserve the original_prompt field exactly as given!
         """
         
-        full_prompt = f"{system_prompt}\n\nPrompt: {prompt}\n\nOutput JSON:"
+        full_prompt = f"{system_prompt}\n\nInput: {prompt}\n\nOutput JSON:"
         
         try:
             response = self.model.generate_content(
                 full_prompt,
                 generation_config=genai.types.GenerationConfig(
                     temperature=0.1,
-                    max_output_tokens=300,
+                    max_output_tokens=500,
                     response_mime_type="application/json"
                 )
             )
@@ -82,13 +211,34 @@ class LanguageAgent:
                 json_str = response_text[json_start:json_end]
                 parsed = json.loads(json_str)
                 
-                # Ensure all fields exist
-                if 'secondary_reference' not in parsed:
-                    parsed['secondary_reference'] = None
-                if 'amount' not in parsed:
-                    parsed['amount'] = None
+                # Ensure critical fields exist
+                if 'original_prompt' not in parsed:
+                    parsed['original_prompt'] = prompt  # ALWAYS preserve this!
                 
-                print(f"✅ Language Agent parsed: {parsed}")
+                if 'command_type' not in parsed:
+                    parsed['command_type'] = 'Vague/Complex'  # Safe default
+                
+                if 'involved_objects' not in parsed:
+                    parsed['involved_objects'] = []
+                
+                if 'spatial_concepts' not in parsed:
+                    parsed['spatial_concepts'] = []
+                
+                if 'intent_summary' not in parsed:
+                    parsed['intent_summary'] = prompt
+                
+                if 'action_hints' not in parsed:
+                    parsed['action_hints'] = {
+                        'primary_action': 'place',
+                        'requires_asset_selection': True,
+                        'requires_spatial_reasoning': True
+                    }
+                
+                print(f"✅ Language Agent analyzed:")
+                print(f"   Command Type: {parsed['command_type']}")
+                print(f"   Objects: {parsed['involved_objects']}")
+                print(f"   Intent: {parsed['intent_summary']}")
+                
                 return parsed
             else:
                 print(f"❌ No valid JSON in response: {response_text}")
@@ -103,112 +253,61 @@ class LanguageAgent:
             return self._fallback_parse(prompt)
     
     def _fallback_parse(self, prompt: str) -> dict:
-        """rule-based fallback if Gemini fails"""
+        """
+        Rule-based fallback if Gemini fails.
+        Still preserves original prompt and uses heuristics for routing.
+        """
         prompt_lower = prompt.lower()
         
-        # Detect action
-        if 'place' in prompt_lower or 'put' in prompt_lower:
-            action = 'place'
-        elif 'move' in prompt_lower:
-            action = 'move'
-        elif 'rotate' in prompt_lower or 'turn' in prompt_lower:
-            action = 'rotate'
-        elif 'add' in prompt_lower or 'create' in prompt_lower:
-            action = 'add'
-        elif 'remove' in prompt_lower or 'delete' in prompt_lower:
-            action = 'remove'
+        # Detect primary action
+        if any(word in prompt_lower for word in ['add', 'create', 'place', 'put']):
+            if any(word in prompt_lower for word in ['new', 'another']):
+                command_type = 'ADD/DELETE'
+                primary_action = 'add'
+            else:
+                # Could be placing existing object
+                command_type = 'POS/ROTATE'
+                primary_action = 'place'
+        elif any(word in prompt_lower for word in ['remove', 'delete', 'take away']):
+            command_type = 'ADD/DELETE'
+            primary_action = 'remove'
+        elif any(word in prompt_lower for word in ['move', 'push', 'pull', 'shift']):
+            command_type = 'POS/ROTATE'
+            primary_action = 'move'
+        elif any(word in prompt_lower for word in ['rotate', 'turn', 'spin']):
+            command_type = 'POS/ROTATE'
+            primary_action = 'rotate'
+        elif any(word in prompt_lower for word in ['arrange', 'organize', 'setup', 'make', 'create']):
+            command_type = 'Vague/Complex'
+            primary_action = 'arrange'
         else:
-            action = 'place'
+            command_type = 'Vague/Complex'
+            primary_action = 'place'
         
-        # Extract amount
-        amount = None
-        if 'degrees' in prompt_lower or '°' in prompt_lower:
-            # Extract number before "degrees"
-            words = prompt_lower.split()
-            for i, word in enumerate(words):
-                if 'degree' in word and i > 0:
-                    amount = f"{words[i-1]} degrees"
-                    break
-        elif 'meter' in prompt_lower or 'meters' in prompt_lower or 'm ' in prompt_lower:
-            words = prompt_lower.split()
-            for i, word in enumerate(words):
-                if 'meter' in word and i > 0:
-                    amount = f"{words[i-1]} meters"
-                    break
-        elif 'a little' in prompt_lower or 'slightly' in prompt_lower:
-            amount = 'a little'
-        elif 'a lot' in prompt_lower or 'much' in prompt_lower:
-            amount = 'a lot'
-        
-        # Detect spatial relation
-        if 'next to' in prompt_lower or 'beside' in prompt_lower:
-            spatial_relation = 'next_to'
-        elif 'in front' in prompt_lower or 'front of' in prompt_lower or 'forward' in prompt_lower:
-            spatial_relation = 'forward' if action == 'move' else 'in_front_of'
-        elif 'behind' in prompt_lower or 'backward' in prompt_lower:
-            spatial_relation = 'backward' if action == 'move' else 'behind'
-        elif 'left' in prompt_lower:
-            spatial_relation = 'left'
-        elif 'right' in prompt_lower:
-            spatial_relation = 'right'
-        elif 'between' in prompt_lower:
-            spatial_relation = 'between'
-        elif ' on ' in prompt_lower or prompt_lower.startswith('on '):
-            spatial_relation = 'on'
-        elif 'under' in prompt_lower:
-            spatial_relation = 'under'
-        elif action == 'rotate':
-            spatial_relation = 'none'
-        else:
-            spatial_relation = 'near'
-        
-        # Extract target object (first object mentioned)
-        words = prompt_lower.split()
+        # Extract objects (simple keyword matching)
         common_objects = ['chair', 'table', 'coffee', 'cup', 'book', 
-                         'lamp', 'sofa', 'desk', 'window', 'door', 'wall']
-        target_object = next((word for word in words if word in common_objects), 'object')
+                         'lamp', 'sofa', 'desk', 'window', 'door', 'wall',
+                         'bookshelf', 'vase', 'couch', 'bed', 'shelf']
+        involved_objects = [obj for obj in common_objects if obj in prompt_lower]
         
-        # Handle "between X and Y" specially
-        reference_point = None
-        secondary_reference = None
-        
-        if 'between' in prompt_lower:
-            # Parse "between X and Y"
-            has_user_ref = any(word in prompt_lower for word in ['me', 'my', 'i ', 'here'])
-            found_objects = [word for word in words if word in common_objects and word != target_object]
-            
-            if has_user_ref and found_objects:
-                reference_point = found_objects[0]
-                secondary_reference = 'user'
-            elif len(found_objects) >= 2:
-                reference_point = found_objects[0]
-                secondary_reference = found_objects[1]
-            else:
-                reference_point = 'user'
-                secondary_reference = None
-        
-        else:
-            # Not "between" - find single reference point
-            if action == 'rotate':
-                reference_point = 'none'
-            elif any(word in prompt_lower for word in ['me', 'my', 'here', 'i ']):
-                reference_point = 'user'
-            elif spatial_relation in ['forward', 'backward', 'left', 'right']:
-                reference_point = 'user'  # Directional movement is user-relative
-            else:
-                found_objects = [word for word in words if word in common_objects and word != target_object]
-                reference_point = found_objects[0] if found_objects else 'user'
-            
-            secondary_reference = None
+        # Basic spatial concepts
+        spatial_keywords = ['next to', 'in front', 'behind', 'on', 'under', 'between',
+                           'left', 'right', 'forward', 'backward', 'around', 'facing']
+        spatial_concepts = [keyword for keyword in spatial_keywords if keyword in prompt_lower]
         
         print(f"⚠️ Using fallback parser")
+        
         return {
-            'action': action,
-            'target_object': target_object,
-            'spatial_relation': spatial_relation,
-            'reference_point': reference_point,
-            'secondary_reference': secondary_reference,
-            'amount': amount
+            'original_prompt': prompt,  # ✅ ALWAYS preserve
+            'command_type': command_type,
+            'involved_objects': involved_objects,
+            'spatial_concepts': spatial_concepts if spatial_concepts else [prompt_lower],
+            'intent_summary': prompt,  # Fallback: use original as summary
+            'action_hints': {
+                'primary_action': primary_action,
+                'requires_asset_selection': command_type == 'ADD/DELETE',
+                'requires_spatial_reasoning': True
+            }
         }
 
 
@@ -217,17 +316,25 @@ if __name__ == "__main__":
     agent = LanguageAgent()
     
     test_cases = [
-        #"change the layout to make the room looks clear",
-        #"clean the room",
-        "move the chair a little forward",
-        "turn the chair to the left",
-        "rotate the chair by 90 degrees"
-
+        # Simple commands
+        #"move the chair left",
+        #"rotate the table 90 degrees",
+        "add a red chair and place it near table",
+        # "place the cup on the table",
+        #"put the chair next to the desk",
+        
+        # Complex commands
+        #"create a cozy reading corner with a lamp next to the chair facing the window",
+        #"arrange the dining table with 4 chairs around it and place a vase in the center",
+        #"move the couch away from the wall to make space for the bookshelf",
+        #"make the room look more spacious",
+        #"organize the workspace better"
     ]
 
     for prompt in test_cases:
-        print(f"\n📝 Input: '{prompt}'")
+        print(f"\n{'='*60}")
+        print(f"📝 Input: '{prompt}'")
+        print(f"{'='*60}")
         result = agent.parse_prompt(prompt)
-        print(f"📦 Output:")
-        for key, value in result.items():
-            print(f"   {key}: {value}")
+        print(f"\n📦 Output:")
+        print(json.dumps(result, indent=2))

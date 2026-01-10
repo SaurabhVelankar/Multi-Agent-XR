@@ -52,12 +52,12 @@ class Orchestrator:
                 'rotation': {'x': 0, 'y': 0, 'z': 0}
             }
 
+    """Build the LangGraph workflow"""  
     def _build_graph(self) -> StateGraph:
-        """Build the LangGraph workflow"""
+        
         workflow = StateGraph(MASState)
 
         # Add nodes
-       
         workflow.add_node("parse_decider", self._parse_and_decide)
         workflow.add_node("scene_agent", self._scene_node)
         workflow.add_node("asset_agent", self._asset_node)
@@ -82,6 +82,8 @@ class Orchestrator:
             }
         )
 
+
+        """Add edges and conditional edges"""
         # Case: ADD/DELETE path
         workflow.add_edge("asset_agent", "scene_agent")
         # Case: Vague/Complex path
@@ -104,6 +106,8 @@ class Orchestrator:
             }
         )
 
+        # Iterate back to the initial state
+        workflow.add_edge("execution_agent", "parse_decider")
 
         return workflow
 
@@ -116,11 +120,14 @@ class Orchestrator:
                                                          "scene_agent",
                                                          "memory"]:
         """Route based on command type"""
-        if state["command_type"] == "ADD/DELETE":
+        # Add/Delete
+        if state["command_type"] == "ADD/DELETE": 
             return "asset_agent"
-        elif state["command_type"] == "POS/ROTATE":
+        # Position/Rotation placement
+        elif state["command_type"] == "POS/ROTATE": 
             return "scene_agent"
-        else:  # Vague/Complex
+        # Vague/Complex
+        else:  
             return "memory"
 
     def _check_verification_result(state: MASState):
@@ -133,8 +140,12 @@ class Orchestrator:
             else:
                 return "handle_placement" # All good, proceed                                                          
 
-    def _parse_and_decide(self):
-        return 0
+    async def _parse_and_decide(self, state: MASState) -> MASState:
+        """Parse user prompt and decide command type"""
+        result = await language_agent.process(state["user_prompt"], state["scene_state"])
+        state["command_type"] = result["command_type"]
+        state["parsed_command"] = result["parsed"]
+        return state
     
     def _scene_node(self):
         return 0
@@ -186,19 +197,27 @@ class Orchestrator:
             return False
         
         #  Phase 2: get obj state
-        print("🔍 Step 2: Getting current object state...")
-        target_object = parsed_command['target_object']
-        
-        current_state = self.verification_agent.get_object_state(target_object)
+        print("🔍 Step 2: Getting current object states...")
+        involved_objects = parsed_command['involved_objects']
 
-        if not current_state:
-            print(f"❌ Object '{target_object}' not found in scene")
+        if not involved_objects:
+            print("❌ No objects specified in command")
             return False
-        
-        print(f"   Found: {current_state['name']} (ID: {current_state['id']})")
-        print(f"   Current position: {current_state['position']}")
-        print(f"   Current rotation: {current_state['rotation']}\n")
-        
+
+        # Get state for ALL involved objects
+        object_states = []
+        for obj_name in involved_objects:
+            current_state = self.verification_agent.get_object_state(obj_name)
+            
+            if not current_state:
+                print(f"❌ Object '{obj_name}' not found in scene")
+                return False
+            
+            object_states.extend(current_state)
+            for state in current_state:
+                print(f"   Found: {state['name']} (ID: {state['id']})")
+                print(f"   Position: {state['position']}")
+                print(f"   Rotation: {state['rotation']}")
 
         # Phase 3: Scene agent do the spatial reasoning
         print("🧠 Step 3: Scene Agent calculating spatial changes...")

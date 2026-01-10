@@ -3,7 +3,7 @@ import os
 from typing import Dict, Optional
 import sys
 from pathlib import Path
-
+import google.generativeai as genai
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import Database
@@ -13,7 +13,9 @@ class VerificationAgent:
     def __init__(self, database):
         # Initialize the database
         self.database = database
-    
+        genai.configure(api_key='AIzaSyAFdBnX9Zi8sqT-arPVj9ivSFQPwH8MmcU')
+        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+
     def get_object_state (self, object_name: str) -> Optional[Dict]:
         """
         Get current state of an object by name
@@ -32,15 +34,19 @@ class VerificationAgent:
             return None
         
         if len(objects) > 1:
-            print(f"  ⚠️ Multiple objects found with name '{object_name}', using first one")
+            #print(f"  ⚠️ Multiple objects found with name '{object_name}', using first one")
+            print(f" ✓ Found {len(objects)} objects with name '{object_name}'")
         
-        obj = objects[0]
-        return {
-            'id': obj['id'],
-            'name': obj['name'],
-            'position': obj['position'],
-            'rotation': obj['rotation']
-        }
+        # obj = objects[0]
+        return [
+            {
+                'id': obj['id'],
+                'name': obj['name'],
+                'position': obj['position'],
+                'rotation': obj['rotation']
+            }
+            for obj in objects
+        ]
 
 
     def validate_transformation (self, transformation: Dict) -> bool:
@@ -87,14 +93,16 @@ if __name__ == "__main__":
     agent = VerificationAgent(db)
     
     # Get object state
-    state = agent.get_object_state("chair")
-    print(f"Current state: {state}")
-    id = state.get("id")
-    name = state.get("name")
-    position = state.get("position")
+    states = agent.get_object_state("chair")
+    print(f"Current state: {states}")
     
+    first_state = states[0]
+    id = first_state.get("id")
+    name = first_state.get("name")
+    position = first_state.get("position")
+    rotation = first_state.get("rotation")
     # Execute update
-    if state:
+    if states:
         updates = {
             'position': {'x': 0.5, 'y': 0, 'z': -1.5}
         }
