@@ -30,14 +30,16 @@ class VerificationAgent:
         objects = self.database.get_objects_by_name(object_name)
 
         if not objects:
-            print(f"  ⚠️ No object found with name '{object_name}'")
-            return None
+            print(f"  🔍 No exact match for '{object_name}', trying semantic search...")
+            objects = self.semantic_search(object_name)
+            
+            if not objects:
+                print(f"  ⚠️ No objects found matching '{object_name}'")
+                return None
         
         if len(objects) > 1:
-            #print(f"  ⚠️ Multiple objects found with name '{object_name}', using first one")
             print(f" ✓ Found {len(objects)} objects with name '{object_name}'")
-        
-        # obj = objects[0]
+
         return [
             {
                 'id': obj['id'],
@@ -48,6 +50,49 @@ class VerificationAgent:
             for obj in objects
         ]
 
+    def semantic_search(self, query: str) -> list:
+        """
+        Use LLM to find objects matching semantic query.
+        Single compact method for all vague queries.
+        """
+        all_objects = self.database.scene_data.get('objects', [])
+
+        if not all_objects:
+            return []
+        
+        # Ask LLM which objects match
+        object_list = "\n".join([f"- {obj['id']}: {obj['name']}" for obj in all_objects])
+            
+        prompt = f"""Query: "{query}"
+            Available objects: {object_list}
+
+            Which object IDs match? Consider semantic meaning (e.g., "furniture" = chairs, tables, sofas).
+            Return JSON array of IDs, e.g., ["chair_01", "table_01"] or [] if none match.
+            """
+        
+        try:
+            response = self.model.generate_content(
+                prompt,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.1,
+                    max_output_tokens=200,
+                    response_mime_type="application/json"
+                )
+            )
+            
+            matching_ids = json.loads(response.text)
+            
+            # Get full objects
+            result = [obj for obj in all_objects if obj['id'] in matching_ids]
+            
+            if result:
+                print(f"  ✅ Semantic search found {len(result)} objects")
+            
+            return result
+        
+        except Exception as e:
+            print(f"  ❌ Semantic search error: {e}")
+            return []
 
     def validate_transformation (self, transformation: Dict) -> bool:
         """
