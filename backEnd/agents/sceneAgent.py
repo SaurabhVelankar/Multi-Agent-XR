@@ -5,246 +5,6 @@ import math
 import re
 from typing import Dict, List, Optional, Tuple
 
-'''
-class SceneAgent:
-    """
-        Scene Agent handles spatial reasoning and determines:
-        - Object positions relative to user/other objects
-        - Object rotations
-        - Spatial relationships and constraints
-    """
-    def __init__(self, use_llm_reasoning = True):
-        # Google Gemini Studio initialize
-        genai.configure(api_key='AIzaSyCPHwWiX1fwWkn6-ffrFEdQE-qP6KvxE_8')
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
-        self.use_llm_reasoning = use_llm_reasoning
-
-    def calculate_spatial_transformation(self,
-                                         parsed_command: Dict,
-                                         scene_state: Dict,
-                                         user_position: Dict = None 
-                                        ) -> Dict:
-        
-        """
-            Calculate the actual position and rotation for an obj bsed on parsed command.
-            Args:
-                parsed_command: Output from LanguageAgent
-                scene_state: Current scene state from dataBase
-                user_position: User's current position {x, y, z, rotation}
-            Returns:
-                Dict with:
-                {
-                    "object_id": str,
-                    "position": {"x": float, "y": float, "z": float},
-                    "rotation": {"x": float, "y": float, "z": float},
-                    "action": "place" | "move" | "rotate"
-                }
-        
-        """
-        # Default user position if not provided
-        # In case when the head track mode is not activated
-        if user_position is None:
-            user_position = {
-                'x': 0, 'y': 0, 'z': 0,
-                'rotation': {'x': 0, 'y': 0, 'z': 0}
-            }
-        
-        print(f"\n🧠 Scene Agent (LLM) processing:")
-        print(f"   Command: {parsed_command}")
-
-        return self._llm_spatial_reasoning(
-            parsed_command,
-            scene_state,
-            user_position
-        )
-    
-    def _llm_spatial_reasoning(self,
-                               parsed_command: Dict,
-                               scene_state: Dict,
-                               user_position: Dict) -> Dict:
-        """
-            Use LLM to calculate exact spatial transformation.
-            The LLM receives full scene context and outputs final coordinates.
-        """
-
-        # Prepare the context for the LLM
-        scene_objects = [
-            {
-                'id': obj['id'],
-                'name': obj['name'],
-                'position': obj['position'],
-                'rotation': obj['rotation'],
-                'category': obj.get('category', 'unknown')
-            }
-            for obj in scene_state.get('objects', [])
-        ]
-
-
-        # Prompt engineering for the scene agent
-        prompt = f"""You are an expert spatial reasoning AI for a 3D virtual environment.
-
-                    USER COMMAND:
-                    {json.dumps(parsed_command, indent=2)}
-
-                    USER POSITION & ORIENTATION:
-                    Position: ({user_position['x']:.2f}, {user_position['y']:.2f}, {user_position['z']:.2f})
-                    Facing Direction (Y-rotation): {user_position.get('rotation', {}).get('y', 0):.2f} radians
-                    Note: User faces -Z direction (forward) by default
-
-                    SCENE OBJECTS:
-                    {json.dumps(scene_objects, indent=2)}
-
-                    COORDINATE SYSTEM:
-                    - X-axis: Left (-) to Right (+)
-                    - Y-axis: Down (-) to Up (+), floor is at y=-1
-                    - Z-axis: Forward (-) to Backward (+)
-                    - Rotations in radians
-                    - User typically faces -Z direction (forward)
-
-                    SPATIAL REASONING RULES:
-                    1. "next to" = 0.5 meters offset horizontally
-                    2. "in front of" = offset in -Z direction relative to reference
-                    3. "behind" = offset in +Z direction
-                    4. "on" = place on top (y-offset by ~0.3m above surface)
-                    5. "between X and Y" = midpoint between two objects
-                    6. "forward/backward/left/right" relative to USER's facing direction
-                    7. For rotation: convert degrees to radians (90° = 1.5708 radians)
-                    8. For "a little" movement = 0.2m, "a lot" = 0.6m, default = 0.3m
-
-                    TASK:
-                    Calculate the EXACT final position and rotation for the target object.
-                    Consider:
-                    - Current object position
-                    - User position and facing direction
-                    - Spatial relationships with other objects
-                    - Physical constraints (objects don't overlap, stay above floor)
-
-                    OUTPUT REQUIREMENTS:
-                    - Return valid JSON only, no additional text
-                    - Include reasoning for your calculations
-                    - Ensure coordinates are realistic and achievable
-                    - Object IDs must match exactly from the scene
-
-                    Output JSON format:
-                    {{
-                        "object_id": "exact_object_id_from_scene",
-                        "position": {{"x": float, "y": float, "z": float}},
-                        "rotation": {{"x": float, "y": float, "z": float}},
-                        "action": "move|place|rotate",
-                        "reasoning": "brief explanation of spatial calculation"
-                    }}
-                """
-        try:
-            response = self.model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    temperature=0.2,  # Low temperature for consistent spatial reasoning
-                    max_output_tokens=500,
-                    response_mime_type="application/json"
-                )
-            )
-
-            # Parse LLM response
-            result = json.loads(response.text)
-
-            # for debugg
-            print(f"✅ LLM Spatial Reasoning:")
-            print(f"   Object: {result.get('object_id')}")
-            print(f"   Position: ({result['position']['x']:.2f}, {result['position']['y']:.2f}, {result['position']['z']:.2f})")
-            print(f"   Rotation: ({result['rotation']['x']:.2f}, {result['rotation']['y']:.2f}, {result['rotation']['z']:.2f})")
-            print(f"   Reasoning: {result.get('reasoning', 'N/A')}")
-
-
-            if not self._validate_transformation(result):
-                print("⚠️ LLM output validation failed, using fallback")
-                return self._fallback_calculation(parsed_command, scene_state, user_position)
-            
-            return result
-        
-        except json.JSONDecodeError as e:
-            print(f"❌ LLM JSON parsing error: {e}")
-            print(f"Raw response: {response.text if 'response' in locals() else 'No response'}")
-            return self._fallback_calculation(parsed_command, scene_state, user_position)
-        
-        except Exception as e:
-            print(f"❌ LLM spatial reasoning error: {e}")
-            return self._fallback_calculation(parsed_command, scene_state, user_position)
-
-    def _validate_transformation(self, result: Dict) -> bool:
-        """Validate LLM output has correct structure"""
-        required_keys = ['object_id', 'position', 'rotation', 'action']
-        
-        if not all(key in result for key in required_keys):
-            return False
-        
-        # Validate position format
-        pos = result.get('position', {})
-        if not all(k in pos for k in ['x', 'y', 'z']):
-            return False
-        
-        # Validate rotation format
-        rot = result.get('rotation', {})
-        if not all(k in rot for k in ['x', 'y', 'z']):
-            return False
-        
-        # Check if values are numbers
-        try:
-            float(pos['x'])
-            float(pos['y'])
-            float(pos['z'])
-            float(rot['x'])
-            float(rot['y'])
-            float(rot['z'])
-        except (ValueError, TypeError):
-            return False
-        
-        return True
-    
-    def _fallback_calculation(self,
-                             parsed_command: Dict,
-                             scene_state: Dict,
-                             user_position: Dict) -> Dict:
-        """
-        Simple fallback when LLM fails.
-        Returns a safe default transformation.
-        """
-        print("⚠️ Using fallback calculation")
-        
-        target_name = parsed_command.get('target_object', 'unknown')
-        
-        # Find target object
-        target_obj = None
-        for obj in scene_state.get('objects', []):
-            if target_name.lower() in obj['name'].lower():
-                target_obj = obj
-                break
-        
-        if not target_obj:
-            print(f"❌ Target object '{target_name}' not found")
-            return None
-        
-        # Simple fallback: slight movement forward
-        current_pos = target_obj['position']
-        
-        return {
-            'object_id': target_obj['id'],
-            'position': {
-                'x': current_pos['x'],
-                'y': current_pos['y'],
-                'z': current_pos['z'] - 0.3  # Move slightly forward
-            },
-            'rotation': target_obj['rotation'].copy(),
-            'action': parsed_command.get('action', 'move')
-        }
-'''
-
-import google.generativeai as genai
-import json
-import os
-import math
-import re
-from typing import Dict, List, Optional, Tuple
-
 
 class SceneAgent:
     """
@@ -382,92 +142,92 @@ class SceneAgent:
         # Prompt engineering for the scene agent
         prompt = f"""You are an expert spatial reasoning AI for a 3D virtual environment.
 
-USER'S ORIGINAL REQUEST (Preserve semantic meaning!):
-"{original_prompt}"
+            USER'S ORIGINAL REQUEST (Preserve semantic meaning!):
+            "{original_prompt}"
 
-INTENT ANALYSIS:
-- Command Type: {command_type}
-- Primary Action: {action_hints.get('primary_action', 'unknown')}
-- High-level Goal: {intent_summary}
-- Objects Involved: {', '.join(involved_objects) if involved_objects else 'None specified'}
-- Spatial Concepts: {', '.join(spatial_concepts) if spatial_concepts else 'None specified'}
+            INTENT ANALYSIS:
+            - Command Type: {command_type}
+            - Primary Action: {action_hints.get('primary_action', 'unknown')}
+            - High-level Goal: {intent_summary}
+            - Objects Involved: {', '.join(involved_objects) if involved_objects else 'None specified'}
+            - Spatial Concepts: {', '.join(spatial_concepts) if spatial_concepts else 'None specified'}
 
-USER POSITION & ORIENTATION:
-Position: ({user_position['x']:.2f}, {user_position['y']:.2f}, {user_position['z']:.2f})
-Facing Direction (Y-rotation): {user_position.get('rotation', {}).get('y', 0):.2f} radians
-Note: User faces -Z direction (forward) by default
+            USER POSITION & ORIENTATION:
+            Position: ({user_position['x']:.2f}, {user_position['y']:.2f}, {user_position['z']:.2f})
+            Facing Direction (Y-rotation): {user_position.get('rotation', {}).get('y', 0):.2f} radians
+            Note: User faces -Z direction (forward) by default
 
-CURRENT SCENE OBJECTS:
-{json.dumps(scene_objects, indent=2)}
+            CURRENT SCENE OBJECTS:
+            {json.dumps(scene_objects, indent=2)}
 
-COORDINATE SYSTEM:
-- X-axis: Left (-) to Right (+)
-- Y-axis: Down (-) to Up (+), floor is at y=-1
-- Z-axis: Forward (-) to Backward (+)
-- Rotations in radians
-- User typically faces -Z direction (forward)
+            COORDINATE SYSTEM:
+            - X-axis: Left (-) to Right (+)
+            - Y-axis: Down (-) to Up (+), floor is at y=-1
+            - Z-axis: Forward (-) to Backward (+)
+            - Rotations in radians
+            - User typically faces -Z direction (forward)
 
-SPATIAL REASONING RULES:
-1. "next to" = 0.5 meters offset horizontally
-2. "in front of" = offset in -Z direction relative to reference
-3. "behind" = offset in +Z direction
-4. "on" = place on top (y-offset by ~0.3m above surface)
-5. "between X and Y" = midpoint between two objects
-6. "forward/backward/left/right" relative to USER's facing direction
-7. For rotation: convert degrees to radians (90° = 1.5708 radians)
-8. For "a little" movement = 0.2m, "a lot" = 0.6m, default = 0.3m
-9. For aesthetic goals like "cozy" or "spacious", consider spacing and orientation
-10. For multi-object arrangements, ensure coherent spatial relationships
-{feedback_context}
+            SPATIAL REASONING RULES:
+            1. "next to" = 0.5 meters offset horizontally
+            2. "in front of" = offset in -Z direction relative to reference
+            3. "behind" = offset in +Z direction
+            4. "on" = place on top (y-offset by ~0.3m above surface)
+            5. "between X and Y" = midpoint between two objects
+            6. "forward/backward/left/right" relative to USER's facing direction
+            7. For rotation: convert degrees to radians (90° = 1.5708 radians)
+            8. For "a little" movement = 0.2m, "a lot" = 0.6m, default = 0.3m
+            9. For aesthetic goals like "cozy" or "spacious", consider spacing and orientation
+            10. For multi-object arrangements, ensure coherent spatial relationships
+            {feedback_context}
 
-TASK:
-Based on the FULL semantic context of the original prompt "{original_prompt}",
-calculate the EXACT final position and rotation for the target object(s).
+            TASK:
+            Based on the FULL semantic context of the original prompt "{original_prompt}",
+            calculate the EXACT final position and rotation for the target object(s).
 
-Consider:
-- The user's HIGH-LEVEL INTENT, not just literal keywords
-- Current object positions and their relationships
-- User position and facing direction
-- Physical constraints (no overlaps, stay above floor y=-1)
-- Aesthetic considerations if mentioned (cozy, spacious, organized, etc.)
-- Multiple objects if this is a complex arrangement
+            Consider:
+            - The user's HIGH-LEVEL INTENT, not just literal keywords
+            - Current object positions and their relationships
+            - User position and facing direction
+            - Physical constraints (no overlaps, stay above floor y=-1)
+            - Aesthetic considerations if mentioned (cozy, spacious, organized, etc.)
+            - Multiple objects if this is a complex arrangement
 
-OUTPUT REQUIREMENTS:
-- Return valid JSON only, no additional text
-- For SIMPLE commands (single object): Return single object transformation
-- For COMPLEX commands (multiple objects): Return array of transformations
-- Include reasoning for your spatial calculations
-- Ensure coordinates are realistic and achievable
-- Object IDs must match exactly from the scene
+            OUTPUT REQUIREMENTS:
+            - Return valid JSON only, no additional text
+            - For SIMPLE commands (single object): Return single object transformation
+            - For COMPLEX commands (multiple objects): Return array of transformations
+            - Include reasoning for your spatial calculations
+            - Ensure coordinates are realistic and achievable
+            - Object IDs must match exactly from the scene
 
-For SINGLE OBJECT (simple/medium commands):
-{{
-    "object_id": "exact_object_id_from_scene",
-    "position": {{"x": float, "y": float, "z": float}},
-    "rotation": {{"x": float, "y": float, "z": float}},
-    "action": "move|place|rotate",
-    "reasoning": "brief explanation considering the user's intent"
-}}
+            For SINGLE OBJECT (simple/medium commands):
+            {{
+                "object_id": "exact_object_id_from_scene",
+                "position": {{"x": float, "y": float, "z": float}},
+                "rotation": {{"x": float, "y": float, "z": float}},
+                "action": "move|place|rotate",
+                "reasoning": "brief explanation considering the user's intent"
+            }}
 
-For MULTIPLE OBJECTS (complex arrangements):
-{{
-    "objects": [
-        {{
-            "object_id": "id1",
-            "position": {{"x": float, "y": float, "z": float}},
-            "rotation": {{"x": float, "y": float, "z": float}},
-            "action": "move|place|rotate"
-        }},
-        {{
-            "object_id": "id2",
-            "position": {{"x": float, "y": float, "z": float}},
-            "rotation": {{"x": float, "y": float, "z": float}},
-            "action": "move|place|rotate"
-        }}
-    ],
-    "reasoning": "explanation of the overall spatial arrangement and how it achieves the user's intent"
-}}
-"""
+            For MULTIPLE OBJECTS (complex arrangements):
+            {{
+                "objects": [
+                    {{
+                        "object_id": "id1",
+                        "position": {{"x": float, "y": float, "z": float}},
+                        "rotation": {{"x": float, "y": float, "z": float}},
+                        "action": "move|place|rotate"
+                    }},
+                    {{
+                        "object_id": "id2",
+                        "position": {{"x": float, "y": float, "z": float}},
+                        "rotation": {{"x": float, "y": float, "z": float}},
+                        "action": "move|place|rotate"
+                    }}
+                ],
+                "reasoning": "explanation of the overall spatial arrangement and how it achieves the user's intent"
+            }}
+            """
         try:
             response = self.model.generate_content(
                 prompt,

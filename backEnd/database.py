@@ -46,6 +46,23 @@ class Database:
             self.objects = self.scene_data['objects']
             # for testing Database().load()
             # return self.objects
+
+            # Add walls to searchable objects (read-only)
+            if 'structure' in self.scene_data and 'walls' in self.scene_data['structure']:
+                for wall in self.scene_data['structure']['walls']:
+                    # Mark as non-movable structural element
+                    wall['name'] = wall.get('type', 'wall')  # "wall"
+                    wall['category'] = 'structure'
+                    wall['properties'] = {'movable': False, 'structural': True}
+                    self.objects.append(wall)
+            
+            # add floor
+            if 'structure' in self.scene_data and 'floor' in self.scene_data['structure']:
+                floor = self.scene_data['structure']['floor']
+                floor['name'] = floor.get('type', 'floor')  # "floor"
+                floor['category'] = 'structure'
+                floor['properties'] = {'movable': False, 'structural': True}
+                self.objects.append(floor)
         
         except FileNotFoundError:
             print(f"❌ Scene file not found: {self.json_path}")

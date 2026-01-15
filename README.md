@@ -22,7 +22,11 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
     ```
 
 ## Open the project:
-
+0. **Install python packages in the requirements.txt**:
+    ```bash
+    cd backEnd
+    pip install -r requirements.txt
+    ```
 
 1. **Check your local IP address by running**:
     ```bash
