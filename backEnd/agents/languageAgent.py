@@ -4,7 +4,7 @@ import google.generativeai as genai
 class LanguageAgent:
     def __init__(self):
         # Configure Gemini API
-        genai.configure(api_key='AIzaSyAFdBnX9Zi8sqT-arPVj9ivSFQPwH8MmcU')
+        genai.configure(api_key='AIzaSyCKPRb78ZLmcOwzDH4p9ErHDiS5_g8L4K8')
         self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
     
     def parse_prompt(self, prompt: str) -> dict:

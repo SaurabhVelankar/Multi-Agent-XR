@@ -17,8 +17,8 @@ class SceneAgent:
     """
     def __init__(self, use_llm_reasoning=True):
         # Google Gemini Studio initialize
-        genai.configure(api_key='AIzaSyCPHwWiX1fwWkn6-ffrFEdQE-qP6KvxE_8')
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        genai.configure(api_key='AIzaSyCKPRb78ZLmcOwzDH4p9ErHDiS5_g8L4K8')
+        self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
         self.use_llm_reasoning = use_llm_reasoning
 
     def calculate_spatial_transformation(self,
