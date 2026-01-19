@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Optional, Set
-from __init__ import Orchestrator
+from orchestrator import Orchestrator
 from __init__ import LanguageAgent, SceneAgent, AssetAgent, CodeAgent, VerificationAgent
 from database import Database
 import uvicorn

@@ -4,17 +4,30 @@ import google.generativeai as genai
 class LanguageAgent:
     def __init__(self):
         # Configure Gemini API
-        genai.configure(api_key='AIzaSyCKPRb78ZLmcOwzDH4p9ErHDiS5_g8L4K8')
+        genai.configure(api_key='API Key')
         self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
     
-    def parse_prompt(self, prompt: str) -> dict:
+    def parse_prompt(self, 
+                     prompt: str,
+                     context_history: list = None) -> dict:
         """
         Parse & Decide: Analyze command for routing WITHOUT losing semantic information.
         
         Returns enriched analysis that preserves the original prompt's full context
         for downstream agents to interpret with their specialized knowledge.
         """
-        
+        # ✅ Build context string from history
+        context_str = ""
+        if context_history and len(context_history) > 0:
+            context_str = "\nRECENT CONVERSATION HISTORY:\n"
+            for turn in context_history:
+                context_str += f"Turn {turn['turn']}: User: \"{turn['user_prompt']}\"\n"
+                if turn['success']:
+                    context_str += f"  → Success: {turn.get('spatial_updates', {}).get('action', 'N/A')}\n"
+                else:
+                    context_str += f"  → Failed: {turn.get('error', 'Unknown error')}\n"
+            context_str += "\nUse this history to understand pronouns (\"it\", \"them\") and implicit references.\n"
+
         system_prompt = """You are a command analyzer for a spatial reasoning system.
         
         Analyze user commands and output JSON with:
@@ -189,7 +202,7 @@ class LanguageAgent:
         CRITICAL: Always preserve the original_prompt field exactly as given!
         """
         
-        full_prompt = f"{system_prompt}\n\nInput: {prompt}\n\nOutput JSON:"
+        full_prompt = f"{system_prompt}{context_str}\n\nInput: {prompt}\n\nOutput JSON:"
         
         try:
             response = self.model.generate_content(
