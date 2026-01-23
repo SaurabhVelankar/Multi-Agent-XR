@@ -148,7 +148,7 @@ class LanguageAgent:
         {
             "original_prompt": "arrange the dining table with 4 chairs around it and place a vase in the center",
             "command_type": "Vague/Complex",
-            "involved_objects": ["dining table", "chairs", "vase"],
+            "involved_objects": ["table", "chairs", "vase"],
             "spatial_concepts": [
                 "4 chairs arranged around table",
                 "even distribution pattern",
@@ -185,7 +185,7 @@ class LanguageAgent:
         {
             "original_prompt": "make the room look more spacious",
             "command_type": "Vague/Complex",
-            "involved_objects": [],
+            "involved_objects": ["all objects"],
             "spatial_concepts": [
                 "increase perceived spaciousness",
                 "optimize furniture arrangement",

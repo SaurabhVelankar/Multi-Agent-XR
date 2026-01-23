@@ -178,6 +178,7 @@ class SceneAgent:
             8. For "a little" movement = 0.2m, "a lot" = 0.6m, default = 0.3m
             9. For aesthetic goals like "cozy" or "spacious", consider spacing and orientation
             10. For multi-object arrangements, ensure coherent spatial relationships
+            11. Ensure that all the objects maniputed are on the floor 
             {feedback_context}
 
             TASK:

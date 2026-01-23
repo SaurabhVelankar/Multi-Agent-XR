@@ -21,11 +21,23 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
     npm install
     ```
 
+## Generate Google Gemini API key
+
+1. **Go to website**:
+    https://aistudio.google.com/api-keys to create your own Gemini API key following the giudeline.
+
+2. **Navigate to**:
+    - */backEnd/agents* folder and insert your own API key into _ _init_ _ method of each ..agent.py file
+    <p align="center">
+    <img src="./docs/images (for README and experiment)/GenAI API insertion.png" />
+    </p>
+
 ## Open the project:
 0. **Install python packages in the requirements.txt**:
     ```bash
     cd backEnd
     pip install -r requirements.txt
+    pip install -U langgraph
     ```
 
 1. **Check your local IP address by running**:
@@ -38,7 +50,7 @@ This tutorial teaches you how to navigate to the reseources and basic setup of t
     cd backEnd
     openssl req -x509 -newkey rsa:4096 -nodes \
         -keyout key.pem -out cert.pem -days 365 \
-        -subj "/C=US/ST=State/L=City/O=Dev/CN=your-ip-address"
+        -subj "/C=US/ST=State/L=City/O=Dev/CN=your-local-ip-address"
     ```
 
 3. **Open the terminal in the root project folder**:
