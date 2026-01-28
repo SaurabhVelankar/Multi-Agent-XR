@@ -5,7 +5,7 @@ class LanguageAgent:
     def __init__(self):
         # Configure Gemini API
         genai.configure(api_key='API Key')
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
     
     def parse_prompt(self, 
                      prompt: str,

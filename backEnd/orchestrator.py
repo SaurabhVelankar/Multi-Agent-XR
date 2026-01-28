@@ -29,6 +29,7 @@ class Orchestrator:
     def __init__(self, 
                  language_agent: LanguageAgent, 
                  scene_agent: SceneAgent, 
+                 asset_agent: AssetAgent,
                  code_agent: CodeAgent, 
                  verification_agent: VerificationAgent,
                  database:  Database,
@@ -36,16 +37,17 @@ class Orchestrator:
                  conversation_manager: Optional[ConversationManager] = None):
         
         # Initialize
-        # self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
         self.workflow =self._build_graph()
         self.app = self.workflow.compile()
 
         self.language_agent = language_agent
         self.scene_agent =  scene_agent
+        self.asset_agent = asset_agent
         self.code_agent = code_agent
         self.database = database
         self.verification_agent = verification_agent
         self.user_position = user_position
+        self.conversation_manager = conversation_manager
 
         # This stores the conversation history of the current session
         self.conversation_history = {}
@@ -69,10 +71,7 @@ class Orchestrator:
         workflow.add_node("scene_agent", self._scene_node)
         workflow.add_node("asset_agent", self._asset_node)
         workflow.add_node("verification_agent", self._verification_node)
-        workflow.add_node("verify_collision", self._collision_node)
         workflow.add_node("execution_agent", self._execution_node)
-        workflow.add_node("handle_placement", self._placement_node)
-        # Tentative
         workflow.add_node("memory", self._memory_node)
         
         # Set entry point
@@ -91,17 +90,15 @@ class Orchestrator:
 
 
         """Add edges and conditional edges"""
-        # Case: ADD/DELETE path
+        # Case: ADD/DELETE path (asset → scene → verification → execution)
         workflow.add_edge("asset_agent", "scene_agent")
-        # Case: Vague/Complex path
+        # Case: Vague/Complex path (memory → asset → scene)
         workflow.add_edge("memory", "asset_agent")
-        workflow.add_edge("memory", "scene_agent")
-
-        # verification phase
+        # Case: POS/ROTATE path (scene → verification → execution)
         workflow.add_edge("scene_agent", "verification_agent")
 
         # Execution phase
-        workflow.add_edge("verification_agent", "execution_agent")
+        # workflow.add_edge("verification_agent", "execution_agent")
 
         # Conditional: iterate or end
         workflow.add_conditional_edges(
@@ -110,11 +107,12 @@ class Orchestrator:
             {
                 "execution_agent": "execution_agent", # No collision -> continue
                 "scene_agent": "scene_agent", # Collision detected -> iterate back
+                "end": END
             }
         )
 
         # Iterate back to the initial state
-        workflow.add_edge("execution_agent", "parse_decider")
+        workflow.add_edge("execution_agent", END)
 
         return workflow
 
@@ -126,57 +124,345 @@ class Orchestrator:
     def _route_command(self, state: MASState) -> Literal["asset_agent", 
                                                          "scene_agent",
                                                          "memory"]:
+        
         """Route based on command type"""
-        # Add/Delete
-        if state["command_type"] == "ADD/DELETE": 
+        command_type = state.get("command_type")
+        
+        print(f"\n🔀 Routing: {command_type}")
+
+        if command_type == "ADD/DELETE":
             return "asset_agent"
-        # Position/Rotation placement
-        elif state["command_type"] == "POS/ROTATE": 
+        elif command_type == "POS/ROTATE":
             return "scene_agent"
-        # Vague/Complex
-        else:  
+        else:  # Vague/Complex
             return "memory"
 
-    def _check_verification_result(state: MASState):
-            """Decide what to do based on verification result"""
-            if state["verification_result"]["has_collision"]:
-                if state["retry_count"] < state["max_retries"]:
-                    return "scene_agent"  # Loop back to retry
-                else:
-                    return "conflict_resolution"  # Too many retries, need help (human suggestion)
-            else:
-                return "handle_placement" # All good, proceed                                                          
+    def _check_verification_result(self, state: MASState) -> Literal["execution_agent", 
+                                                                     "scene_agent", 
+                                                                     "end"]:
+        """Decide what to do based on verification result"""
+        verification = state.get("verification_result", {})
+        verification = state.get("verification_result", {})
+        has_collision = verification.get("has_collision", False)
+        iteration_count = state.get("iteration_count", 0)
+        max_iterations = state.get("max_iteration", 3)
+        
+        if not has_collision:
+            print("✅ Verification passed - proceeding to execution")
+            return "execution_agent"
+        
+        if iteration_count < max_iterations:
+            print(f"🔄 Collision detected - retrying ({iteration_count + 1}/{max_iterations})")
+            state["iteration_count"] = iteration_count + 1
+            return "scene_agent"
+        
+        print(f"❌ Max retries reached - giving up")
+        state["error_message"] = "Max retries reached due to collisions"
+        return "end"                                                  
 
-    async def _parse_and_decide(self, state: MASState) -> MASState:
+    def _parse_and_decide(self, state: MASState) -> MASState:
         """Parse user prompt and decide command type"""
-        result = await language_agent.process(state["user_prompt"], state["scene_state"])
-        state["command_type"] = result["command_type"]
-        state["parsed_command"] = result["parsed"]
+        print(f"\n{'='*60}")
+        print(f"🎯 Processing: '{state['user_prompt']}'")
+        print(f"📋 Session: {state.get('session_id', 'default')}")
+        print(f"{'='*60}\n")
+        
+        print("🔎 Step 1: Language Agent parsing...")
+
+        session_id = state.get("session_id", "default")
+        recent_context = self._get_recent_context(session_id)
+        parsed_command = self.language_agent.parse_prompt(
+            state["user_prompt"],
+            context_history = recent_context
+            )
+
+        if not parsed_command:
+            print("❌ Failed to parse command")
+            state["success"] = False
+            state["error_message"] = "Parse failed"
+            state["parsed_command"] = None
+            state["command_type"] = None
+            return state
+        
+        command_type = parsed_command.get("command_type")
+        
+        print(f"✅ Parsed: {parsed_command}\n")
+        state["parsed_command"] = parsed_command
+        state["command_type"] = command_type
+
         return state
+
+
     
-    def _scene_node(self):
-        return 0
+    def _asset_node(self, state: MASState) -> MASState:
+        """
+        Asset Agent: Select/add/remove assets
+        """
+        print("🎨 Step 2: Asset Agent processing...")
+
+
     
-    def _asset_node(self):
-        return 0
     
-    def _verification_node(self):
-        return 0
-    
-    def _collision_node(self):
-        return 0
-    
-    def _execution_node(self):
-        return 0
-    
-    def _placement_node(self):
-        return 0
-    
-    def _memory_node(self):
-        return 0
+    def _scene_node(self, state: MASState) -> MASState:
+        """
+        Scene Agent: Calculate spatial transformations
+        """
+        print("🧠 Step 3: Scene Agent calculating spatial changes...")
+
+        parsed_command = state.get("parsed_command")
+        scene_state = state.get("scene_state")
+
+        feedback = None
+        if state.get("iteration_count", 0) > 0:
+            collision_info = state.get("collision_info", {})
+            if collision_info:
+                feedback = {
+                    "previous_attempt": state.get("proposed_placement", {}),
+                    "collision_with": collision_info.get("colliding_objects", []),
+                    "suggestion": collision_info.get("suggestion", "Try alternative placement")
+                }
+
+        spatial_updates = self.scene_agent.calculate_spatial_transformation(
+            parsed_command,
+            scene_state,
+            self.user_position,
+            feedback=feedback
+        )
+
+        if not spatial_updates:
+            print("❌ Failed to calculate spatial updates")
+            state["success"] = False
+            state["error_message"] = "Spatial calculation failed"
+            state["proposed_placement"] = None
+            return state
+        
+        print(f"✅ Calculated updates\n")
+        state["proposed_placement"] = spatial_updates
+        
+        return state
         
 
+    def _verification_node(self, state: MASState) -> MASState:
+        """
+        Verification Agent: Check for collisions and validate placement
+        """
+        print("🔍 Step 4: Verification Agent checking...")
+        proposed_placement = state.get("proposed_placement", {})
+        if not proposed_placement:
+            state["verification_result"] = {
+                "has_collision": False,
+                "valid": False,
+                "message": "No placement to verify"
+            }
+            return state
+        
+        is_valid = self.verification_agent.validate_transformation(proposed_placement)
+        
+        if not is_valid:
+            print("❌ Invalid transformation format")
+            state["verification_result"] = {
+                "has_collision": False,
+                "valid": False,
+                "message": "Invalid format"
+            }
+            return state
+        
+        # Check for collisions (simplified - implement proper collision detection)
+        # For now, just validate that objects exist
+        objects_to_check = []
+        if "objects" in proposed_placement:
+            objects_to_check = proposed_placement["objects"]
+        else:
+            objects_to_check = [proposed_placement]
+        
+        has_collision = False
+        colliding_objects = []
+        
+        for obj_transform in objects_to_check:
+            object_id = obj_transform.get("object_id")
+            obj_state = self.database.get_object_by_id(object_id)
+            
+            if not obj_state:
+                print(f"⚠️  Object {object_id} not found")
+                has_collision = True
+                colliding_objects.append(object_id)
+        
+        if has_collision:
+            print(f"⚠️  Collision detected with: {colliding_objects}")
+            state["verification_result"] = {
+                "has_collision": True,
+                "valid": False,
+                "message": "Collision detected"
+            }
+            state["collision_info"] = {
+                "colliding_objects": colliding_objects,
+                "suggestion": "Adjust placement to avoid collision"
+            }
+        else:
+            print("✅ No collisions detected\n")
+            state["verification_result"] = {
+                "has_collision": False,
+                "valid": True,
+                "message": "Verification passed"
+            }
+            state["collision_info"] = None
+        
+        return state
     
+    
+    def _execution_node(self, state: MASState) -> MASState:
+        """
+        Code Agent: Execute the spatial transformation
+        """
+        print("⚙️ Step 5: Code Agent executing changes...")
+        
+        proposed_placement = state.get("proposed_placement", {})
+        
+        if not proposed_placement:
+            print("❌ No placement to execute")
+            state["success"] = False
+            state["error_message"] = "No placement to execute"
+            return state
+        
+        # Execute transformation
+        result = self.code_agent.execute_transformation(proposed_placement)
+        
+        success = result.get("success", False)
+        
+        if success:
+            print(f"\n✅ Command completed successfully!")
+            print(f"   {result.get('message', '')}")
+            state["success"] = True
+            state["final_actions"] = result.get("results", [])
+        else:
+            print(f"\n❌ Command failed to execute")
+            print(f"   Error: {result.get('message', 'Unknown error')}")
+            state["success"] = False
+            state["error_message"] = result.get("message", "Execution failed")
+        
+        print(f"{'='*60}\n")
+        
+        # Store in conversation history
+        self._store_turn(state)
+        
+        return state
+    
+    def _memory_node(self, state: MASState) -> MASState:
+        """
+        Memory: Retrieve relevant context for vague/complex commands
+        """
+        print("🧠 Step 2: Memory Agent retrieving context...")
+        
+        session_id = state.get("session_id", "default")
+        user_prompt = state.get("user_prompt", "")
+        
+        # Get recent conversation context
+        recent_context = self._get_recent_context(session_id, limit=10)
+        
+        state["memory_context"] = {
+            "recent_turns": recent_context,
+            "context_summary": f"Retrieved {len(recent_context)} previous turns"
+        }
+        
+        print(f"✅ Retrieved {len(recent_context)} previous turns\n")
+        
+        return state
+    
+    # ============================================================================
+    # HELPER METHODS
+    # ============================================================================
+
+    def _get_recent_context(self, session_id: str, limit: int = 5) -> List[Dict]:
+        """Get recent conversation context for a session"""
+        if session_id not in self.conversation_history:
+            return []
+        
+        full_history = self.conversation_history[session_id]
+        return full_history[-limit:] if len(full_history) > 0 else []
+
+    def _store_turn(self, state: MASState):
+            """Store a complete turn in conversation history"""
+            session_id = state.get("session_id", "default")
+            
+            if session_id not in self.conversation_history:
+                self.conversation_history[session_id] = []
+            
+            full_history = self.conversation_history[session_id]
+            
+            turn_entry = {
+                'turn': len(full_history) + 1,
+                'timestamp': time.time(),
+                'user_prompt': state.get("user_prompt", ""),
+                'parsed_command': state.get("parsed_command"),
+                'command_type': state.get("command_type"),
+                'proposed_placement': state.get("proposed_placement"),
+                'verification_result': state.get("verification_result"),
+                'final_actions': state.get("final_actions"),
+                'success': state.get("success", False),
+                'error_message': state.get("error_message"),
+                'iteration_count': state.get("iteration_count", 0),
+            }
+            
+            full_history.append(turn_entry)
+            
+            # Limit history size
+            MAX_HISTORY_PER_SESSION = 100
+            if len(full_history) > MAX_HISTORY_PER_SESSION:
+                self.conversation_history[session_id] = full_history[-MAX_HISTORY_PER_SESSION:]
+    
+    # ============================================================================
+    # PUBLIC API
+    # ============================================================================
+
+    def process_command(self, 
+                       user_prompt: str,
+                       session_id: str = "default") -> bool:
+        """
+        Process a user command through the LangGraph workflow
+        
+        Args:
+            user_prompt: Natural language command from user
+            session_id: Session identifier for conversation tracking
+            
+        Returns:
+            True if command executed successfully, False otherwise
+        """
+        
+        # Initialize session if needed
+        if session_id not in self.conversation_history:
+            self.conversation_history[session_id] = []
+            print(f"🆕 Created new session: {session_id}")
+        
+        # Create initial state
+        initial_state: MASState = {
+            "user_prompt": user_prompt,
+            "session_id": session_id,
+            "command_type": "POS/ROTATE",  # Will be determined by Language Agent
+            "parsed_command": None,
+            "selected_assets": None,
+            "proposed_placement": None,
+            "verification_result": None,
+            "collision_info": None,
+            "scene_state": self.database.scene_data,
+            "memory_context": None,
+            "iteration_count": 0,
+            "max_iteration": 3,
+            "success": False,
+            "error_message": None,
+            "final_actions": None,
+        }
+        
+        # Run the workflow
+        try:
+            final_state = self.app.invoke(initial_state)
+            return final_state.get("success", False)
+        
+        except Exception as e:
+            print(f"\n❌ Workflow error: {e}")
+            return False
+
+
+    '''
     def process_command (self, 
                          user_prompt: str,
                          session_id: str = "default") -> bool:
@@ -299,54 +585,7 @@ class Orchestrator:
         )
         
         return success
-    
-    def _store_turn(self,
-                session_id: str,
-                user_prompt: str,
-                parsed_command: Optional[Dict] = None,
-                object_states: Optional[List] = None,
-                spatial_updates: Optional[Dict] = None,
-                execution_result: Optional[Dict] = None,
-                success: bool = False,
-                error: Optional[str] = None):
-        """
-        Store a complete turn in conversation history
-        
-        Args:
-            session_id: Session identifier
-            user_prompt: Original user command
-            parsed_command: Output from Language Agent
-            object_states: States of involved objects
-            spatial_updates: Transformation from Scene Agent
-            execution_result: Result from Code Agent
-            success: Whether execution succeeded
-            error: Error message if failed
-        """
-        if session_id not in self.conversation_history:
-            self.conversation_history[session_id] = []
-        
-        full_history = self.conversation_history[session_id]
-        
-        turn_entry = {
-            'turn': len(full_history) + 1,
-            'timestamp': time.time(),
-            'user_prompt': user_prompt,
-            'parsed_command': parsed_command,
-            'object_states': object_states,
-            'spatial_updates': spatial_updates,
-            'execution_result': execution_result,
-            'success': success,
-            'error': error,
-        }
-        
-        full_history.append(turn_entry)
-        
-        # Optional: Limit history size per session
-        MAX_HISTORY_PER_SESSION = 100
-        if len(full_history) > MAX_HISTORY_PER_SESSION:
-            # Keep only recent turns
-            self.conversation_history[session_id] = full_history[-MAX_HISTORY_PER_SESSION:]
-            print(f"⚠️  History trimmed to {MAX_HISTORY_PER_SESSION} turns")
+        '''
     
 
 
@@ -358,11 +597,19 @@ if __name__ == "__main__":
     db = Database()
     language_agent = LanguageAgent()
     scene_agent = SceneAgent()
+    asset_agent = AssetAgent() 
     code_agent = CodeAgent(db)
     verification_agent = VerificationAgent(db)
     
     # Initialize orchestrator
-    orchestrator = Orchestrator(language_agent, scene_agent, code_agent, verification_agent, db)
+    orchestrator = Orchestrator(
+        language_agent, 
+        scene_agent, 
+        asset_agent,
+        code_agent, 
+        verification_agent, 
+        db
+    )
     
     # Test commands
     test_commands = [
