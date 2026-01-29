@@ -26,3 +26,588 @@ class AssetAgent:
         """
         genai.configure(api_key='API Key')
         self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
+
+
+'''
+class AssetAgent:
+    """
+    Asset Agent handles:
+    - Creating new objects in the scene
+    - Removing existing objects from the scene
+    - Selecting appropriate assets from available library
+    - Managing object lifecycle (creation/deletion)
+    """
+
+    def __init__(self, 
+                 database: Database, 
+                 assets_path: str = "./webXR/assets/gltf-glb-models"):
+        """
+        Description: 
+            The Asset agent is used to handle the insertion and deletion of 
+            the items within the scene according to human prompt.
+        
+        Args:
+            database: Database instance for scene management
+            assets_path: Path to assets folder containing models and metadata
+        """
+
+        genai.configure(api_key='API Key')
+        self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
+
+        self.database = database
+        self.assets_path = Path(assets_path)
+        
+        self.known_assets = self._load_known_assets()
+        self.all_assets = self._scan_all_assets()
+
+        print(f"📦 AssetAgent initialized")
+        print(f"   Known assets (with metadata): {len(self.known_assets)}")
+        print(f"   Total assets discovered: {len(self.all_assets)}")
+
+
+    # Asset library loading
+    def _load_known_assets(self) -> Dict[str, Dict]:
+
+        """
+        Load assets that have metadata.json files.
+        These assets have complete information and can be used immediately.
+        
+        Returns:
+            Dict mapping asset names to their metadata
+        """
+
+
+
+        library = {}
+
+
+        if not self.assets_path.exists():
+            print(f"⚠️  Assets path not found: {self.assets_path}")
+            return library
+        
+
+        # Scan all subdirectories
+        for asset_dir in self.assets_path.iterdir():
+            if not asset_dir.is_dir():
+                continue
+            
+            # Look for metadata.json
+            metadata_file = asset_dir / "metadata.json"
+            if not metadata_file.exists():
+                continue
+            
+            try:
+                # Load metadata
+                with open(metadata_file, 'r') as f:
+                    metadata = json.load(f)
+                
+                # Find the model file (.gltf or .glb)
+                model_files = list(asset_dir.glob("*.gltf")) + list(asset_dir.glob("*.glb"))
+                if not model_files:
+                    print(f"⚠️  Skipping {asset_dir.name} - no model file found")
+                    continue
+                
+                model_file = model_files[0]
+                
+                # Store asset with full metadata
+                asset_name = metadata["name"]
+                library[asset_name] = {
+                    "name": asset_name,
+                    "category": metadata["category"],
+                    "subcategory": metadata["subcategory"],
+                    "modelPath": str(model_file),
+                    "default_scale": metadata["default_scale"],
+                    "properties": metadata["properties"],
+                    "typical_dimensions": metadata.get("typical_dimensions"),
+                    "default_rotation": metadata.get("default_rotation"),
+                    "has_metadata": True
+                }
+                
+                # Register aliases for flexible matching
+                for alias in metadata.get("aliases", []):
+                    library[alias] = library[asset_name]
+                
+                print(f"   ✅ Loaded: {asset_name} ({metadata['category']}/{metadata['subcategory']})")
+                
+            except Exception as e:
+                print(f"⚠️  Error loading metadata for {asset_dir.name}: {e}")
+                continue
+        
+        return library
+    
+    def _scan_all_assets(self) -> Dict[str, Dict]:
+        """
+        Scan ALL assets in the filesystem, including those without metadata.
+        This allows discovery of new assets that don't have metadata yet.
+        
+        Returns:
+            Dict mapping asset names to basic info
+        """
+        all_assets = {}
+        
+        if not self.assets_path.exists():
+            return all_assets
+        
+        for asset_dir in self.assets_path.iterdir():
+            if not asset_dir.is_dir():
+                continue
+            
+            # Find model files
+            model_files = list(asset_dir.glob("*.gltf")) + list(asset_dir.glob("*.glb"))
+            if not model_files:
+                continue
+            
+            model_file = model_files[0]
+            asset_name = asset_dir.name.replace("_", " ")
+            
+            all_assets[asset_name] = {
+                "name": asset_name,
+                "modelPath": str(model_file),
+                "folder": asset_dir.name,
+                "has_metadata": asset_name in self.known_assets
+            }
+        
+        return all_assets
+    
+
+    def _find_best_match(self, object_name: str) -> Optional[str]:
+        """
+        Find the best matching asset for the given object name.
+        First tries exact match, then uses LLM for semantic matching.
+        
+        Args:
+            object_name: Name of object to find
+            
+        Returns:
+            Asset name if found, None otherwise
+        """
+        # Try exact match first (case-insensitive)
+        object_name_lower = object_name.lower()
+        
+        # Check known assets (includes aliases)
+        for asset_name in self.known_assets.keys():
+            if asset_name.lower() == object_name_lower:
+                return asset_name
+        
+        # Check all discovered assets
+        for asset_name in self.all_assets.keys():
+            if asset_name.lower() == object_name_lower:
+                return asset_name
+        
+        # If no exact match, use LLM for semantic matching
+        print(f"   🔍 No exact match for '{object_name}', trying semantic search...")
+        return self._llm_find_match(object_name)
+
+    def _llm_find_match(self, object_name: str) -> Optional[str]:
+        """
+        Use LLM to find semantic match between user request and available assets.
+        
+        Args:
+            object_name: User's requested object
+            
+        Returns:
+            Best matching asset name or None
+        """
+        available_names = list(self.all_assets.keys())
+        
+        if not available_names:
+            return None
+        
+        prompt = f"""User wants to add: "{object_name}"
+
+                    Available assets:
+                    {', '.join(available_names)}
+
+                    Which asset best matches the user's request?
+                    Return ONLY the asset name exactly as shown, or "NONE" if no good match exists.
+                """
+    
+        try:
+            response = self.model.generate_content(
+                prompt,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.1,
+                    max_output_tokens=50
+                )
+            )
+            
+            matched_name = response.text.strip()
+            
+            if matched_name == "NONE" or matched_name not in available_names:
+                print(f"   ❌ LLM found no good match for '{object_name}'")
+                return None
+            
+            print(f"   ✅ LLM matched '{object_name}' → '{matched_name}'")
+            return matched_name
+            
+        except Exception as e:
+            print(f"   ⚠️  LLM matching error: {e}")
+            return None
+    
+
+
+
+
+    # ID generation
+    def _generate_unique_id(self, object_name: str) -> str:
+            """
+            Generate unique ID following pattern: {name}_{number}
+            
+            Args:
+                object_name: Base name for the object
+                
+            Returns:
+                Unique ID like "chair_03"
+            """
+            # Get all existing objects with this name
+            existing_objects = self.database.scene_data.get('objects', [])
+            
+            # Find objects with same base name
+            base_name = object_name.replace(" ", "_").lower()
+            matching_ids = [
+                obj['id'] for obj in existing_objects 
+                if obj['id'].startswith(f"{base_name}_")
+            ]
+            
+            # Extract numbers from matching IDs
+            numbers = []
+            for obj_id in matching_ids:
+                try:
+                    # Extract number after last underscore
+                    num_str = obj_id.split('_')[-1]
+                    numbers.append(int(num_str))
+                except (ValueError, IndexError):
+                    continue
+            
+            # Generate next number
+            next_num = max(numbers) + 1 if numbers else 1
+            
+            return f"{base_name}_{next_num:02d}"
+    
+
+    def create_object(self, object_name: str) -> Dict:
+        """
+        Create a new object with complete metadata but NO position/rotation.
+        Position and rotation will be added by Scene Agent.
+        
+        Args:
+            object_name: Name of object to create
+            
+        Returns:
+            Complete object structure (except position/rotation)
+            
+        Raises:
+            ValueError: If asset not found or cannot be created
+        """
+        print(f"\n🎨 AssetAgent creating object: '{object_name}'")
+        
+        # Find matching asset
+        matched_name = self._find_best_match(object_name)
+        
+        if not matched_name:
+            raise ValueError(f"No asset found matching '{object_name}'")
+        
+        # Get asset info
+        if matched_name in self.known_assets:
+            # Has metadata - use it
+            return self._create_from_known(matched_name)
+        else:
+            # No metadata - infer it
+            asset_info = self.all_assets[matched_name]
+            return self._create_from_unknown(asset_info)
+        
+    def _create_from_known(self, asset_name: str) -> Dict:
+        """
+        Create object from asset with metadata.json
+        
+        Args:
+            asset_name: Name of asset (must be in known_assets)
+            
+        Returns:
+            Complete object structure
+        """
+        template = self.known_assets[asset_name]
+        new_id = self._generate_unique_id(asset_name)
+        
+        print(f"   ✅ Using known asset: {asset_name}")
+        print(f"   Generated ID: {new_id}")
+        print(f"   Category: {template['category']}/{template['subcategory']}")
+        
+        return {
+            "id": new_id,
+            "name": asset_name,
+            "category": template["category"],
+            "subcategory": template["subcategory"],
+            "modelPath": template["modelPath"],
+            "position": None,  # Scene Agent will set
+            "rotation": None,  # Scene Agent will set
+            "scale": template["default_scale"].copy(),
+            "boundingBox": None,  # Scene Agent will calculate
+            "properties": template["properties"].copy(),
+            "spatialRelations": {
+                "on": "floor_01",  # Default
+                "near": []
+            }
+        }
+    
+
+    def _create_from_unknown(self, asset_info: Dict) -> Dict:
+        """
+        Create object from asset WITHOUT metadata - use LLM to infer metadata.
+        
+        Args:
+            asset_info: Basic asset info from filesystem scan
+            
+        Returns:
+            Object structure with inferred metadata
+        """
+        print(f"   ⚠️  Unknown asset: {asset_info['name']} - inferring metadata with LLM...")
+        
+        # Use LLM to infer metadata
+        metadata = self._infer_metadata(asset_info['name'], asset_info['modelPath'])
+        
+        new_id = self._generate_unique_id(asset_info['name'])
+        
+        print(f"   Generated ID: {new_id}")
+        print(f"   Inferred category: {metadata['category']}/{metadata['subcategory']}")
+        
+        return {
+            "id": new_id,
+            "name": asset_info['name'],
+            "category": metadata["category"],
+            "subcategory": metadata["subcategory"],
+            "modelPath": asset_info["modelPath"],
+            "position": None,
+            "rotation": None,
+            "scale": metadata["scale"],
+            "boundingBox": None,
+            "properties": metadata["properties"],
+            "spatialRelations": {
+                "on": "floor_01",
+                "near": []
+            }
+        }
+    
+
+    def _infer_metadata(self, asset_name: str, model_path: str) -> Dict:
+        """
+        Use LLM to infer metadata for assets without metadata.json
+        
+        Args:
+            asset_name: Name of the asset
+            model_path: Path to model file
+            
+        Returns:
+            Inferred metadata dict
+        """
+        prompt = f"""Asset name: "{asset_name}"
+Model file: {model_path}
+
+Infer the following metadata for this 3D asset and return as JSON:
+{{
+    "category": "furniture" | "vehicle" | "decoration" | "electronics" | "other",
+    "subcategory": "specific type (e.g., seating, lighting, storage)",
+    "scale": {{"x": 0.01, "y": 0.01, "z": 0.01}},
+    "properties": {{
+        "movable": true/false,
+        "interactive": true/false,
+        "weight": "light" | "medium" | "heavy"
+    }}
+}}
+
+Be reasonable with scale - typical values are between 0.001 and 0.5.
+"""
+        
+        try:
+            response = self.model.generate_content(
+                prompt,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.3,
+                    max_output_tokens=200,
+                    response_mime_type="application/json"
+                )
+            )
+            
+            metadata = json.loads(response.text)
+            print(f"   ✅ LLM inferred metadata")
+            return metadata
+            
+        except Exception as e:
+            print(f"   ⚠️  LLM inference failed: {e}, using defaults")
+            # Fallback to safe defaults
+            return {
+                "category": "other",
+                "subcategory": "unknown",
+                "scale": {"x": 0.01, "y": 0.01, "z": 0.01},
+                "properties": {
+                    "movable": True,
+                    "interactive": True,
+                    "weight": "medium"
+                }
+            }
+        
+    # ============================================================================
+    # OBJECT DELETION
+    # ============================================================================
+
+    
+    def delete_object(self, object_name: str) -> Dict:
+        """
+        Find and delete an object from the scene.
+        
+        Args:
+            object_name: Name of object to delete (can be partial)
+            
+        Returns:
+            Dict with deletion info: {"success": bool, "object_id": str, "message": str}
+        """
+        print(f"\n🗑️  AssetAgent deleting object: '{object_name}'")
+        
+        # Find object in scene
+        matching_objects = self.database.get_objects_by_name(object_name)
+        
+        if not matching_objects:
+            print(f"   ❌ No objects found matching '{object_name}'")
+            return {
+                "success": False,
+                "object_id": None,
+                "message": f"No objects found matching '{object_name}'"
+            }
+        
+        if len(matching_objects) > 1:
+            print(f"   ⚠️  Multiple objects found ({len(matching_objects)}), deleting first match")
+        
+        # Delete the first matching object
+        obj_to_delete = matching_objects[0]
+        object_id = obj_to_delete['id']
+        
+        # Remove from database
+        success = self.database.remove_object(object_id)
+        
+        if success:
+            print(f"   ✅ Deleted: {object_id} ({obj_to_delete['name']})")
+            return {
+                "success": True,
+                "object_id": object_id,
+                "message": f"Deleted {object_id}"
+            }
+        else:
+            print(f"   ❌ Failed to delete {object_id}")
+            return {
+                "success": False,
+                "object_id": object_id,
+                "message": f"Failed to delete {object_id}"
+            }
+        
+    def process_command(self, parsed_command: Dict) -> Dict:
+        """
+        Main entry point from orchestrator.
+        Handles both ADD and DELETE commands.
+        
+        Args:
+            parsed_command: Parsed command from Language Agent containing:
+                - action_hints: {"primary_action": "add" | "delete"}
+                - involved_objects: [object_name]
+                
+        Returns:
+            Dict with action results:
+            - For ADD: {"action": "add", "new_object": {...}, "needs_positioning": True}
+            - For DELETE: {"action": "delete", "object_id": str, "success": bool}
+        """
+        action = parsed_command.get("action_hints", {}).get("primary_action", "").lower()
+        involved_objects = parsed_command.get("involved_objects", [])
+        
+        if not involved_objects:
+            return {
+                "action": "none",
+                "success": False,
+                "message": "No objects specified"
+            }
+        
+        object_name = involved_objects[0]
+        
+        if action == "add":
+            try:
+                # Create object (without position/rotation)
+                new_object = self.create_object(object_name)
+                
+                return {
+                    "action": "add",
+                    "new_object": new_object,
+                    "needs_positioning": True,
+                    "success": True,
+                    "message": f"Created {new_object['id']}"
+                }
+                
+            except ValueError as e:
+                return {
+                    "action": "add",
+                    "success": False,
+                    "message": str(e)
+                }
+        
+        elif action in ["delete", "remove"]:
+            result = self.delete_object(object_name)
+            result["action"] = "delete"
+            return result
+        
+        else:
+            return {
+                "action": "unknown",
+                "success": False,
+                "message": f"Unknown action: {action}"
+            }
+
+# ============================================================================
+# TEST
+# ============================================================================
+if __name__ == "__main__":
+    from database import Database
+    
+    # Initialize
+    db = Database()
+    agent = AssetAgent(db)
+    
+    print("\n" + "="*60)
+    print("TEST 1: Add a chair")
+    print("="*60)
+    
+    # Simulate parsed command from Language Agent
+    add_command = {
+        "action_hints": {"primary_action": "add"},
+        "involved_objects": ["chair"]
+    }
+    
+    result = agent.process_command(add_command)
+    print(f"\nResult: {json.dumps(result, indent=2)}")
+    
+    print("\n" + "="*60)
+    print("TEST 2: Delete a chair")
+    print("="*60)
+    
+    delete_command = {
+        "action_hints": {"primary_action": "delete"},
+        "involved_objects": ["chair"]
+    }
+    
+    result = agent.process_command(delete_command)
+    print(f"\nResult: {json.dumps(result, indent=2)}")
+    
+    print("\n" + "="*60)
+    print("TEST 3: Add unknown object (should use LLM)")
+    print("="*60)
+    
+    # This will only work if you have other assets in the folder
+    add_unknown = {
+        "action_hints": {"primary_action": "add"},
+        "involved_objects": ["bookshelf"]  # Assuming this doesn't have metadata
+    }
+    
+    result = agent.process_command(add_unknown)
+    print(f"\nResult: {json.dumps(result, indent=2)}")
+
+    
+'''
+    
+
+
