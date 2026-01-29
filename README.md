@@ -6,6 +6,11 @@
 
 This tutorial teaches you how to navigate to the reseources and basic setup of the project.
 
+## Agent System Workflow
+<p align="center">
+    <img src="./docs/images (for README and experiment)/agent_system_workflow.png" />
+</p>
+
 ## Setup local environment
 
 1. **Clone the repository**: 
