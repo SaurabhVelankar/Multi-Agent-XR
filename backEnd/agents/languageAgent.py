@@ -46,32 +46,48 @@ class LanguageAgent:
         }
         
         CLASSIFICATION RULES:
-        
+
         "ADD/DELETE":
-        - Creating new objects ("add chair", "place a lamp")
-        - Removing objects ("delete table", "remove the cup")
-        - Focus: Object lifecycle (creation/deletion)
-        
+        - Creating NEW objects with explicit creation words
+        ✅ "add a chair", "create a new lamp", "bring in a table"
+        ❌ NOT "place a lamp" (ambiguous - could be moving existing)
+        - Removing objects
+        ✅ "delete table", "remove the cup", "take away the chair"
+        - KEY INDICATORS: "new", "another", "add", "create", "delete", "remove"
+
         "POS/ROTATE":
-        - Moving existing objects ("move chair left", "push table forward")
-        - Rotating objects ("rotate chair 90 degrees", "turn table around")
-        - Single object with clear spatial transformation
-        - Focus: Transform existing object
-        
+        - Moving existing objects
+        ✅ "move chair left", "push table forward", "place lamp on table"
+        - Rotating objects
+        ✅ "rotate chair 90 degrees", "turn table around"
+        - Positioning existing objects
+        ✅ "put the chair next to desk", "position lamp behind sofa"
+        - KEY: Single object transformation, no creation/deletion
+
         "Vague/Complex":
-        - Multiple objects with interdependencies ("arrange dining setup")
-        - Aesthetic/functional goals ("make room cozy", "create workspace")
-        - Unclear spatial relations ("put things in order")
-        - Ambiguous commands ("organize better", "clean up")
-        - Multi-step arrangements ("reading corner with lamp and chair")
-        - Focus: Requires iterative refinement and holistic reasoning
-        
+        - Multiple objects with interdependencies
+        ✅ "arrange dining setup", "organize workspace"
+        - Aesthetic/functional goals
+        ✅ "make room cozy", "create reading corner"
+        - Unclear or multi-step
+        ✅ "put things in order", "set up for dinner"
+        - KEY: Requires planning, multiple steps, or unclear intent
+
         SPATIAL CONCEPTS:
         - DON'T reduce to simple keywords
         - PRESERVE the natural language descriptions
         - Examples: 
           ✅ "cozy reading corner with lamp next to chair facing window"
           ❌ "next_to, facing"
+        
+        CRITICAL DISAMBIGUATION:
+        Does command mention "add", "create new", "another", "delete", "remove"?
+        ├─ YES → ADD/DELETE
+        └─ NO → Is it "move", "rotate", "place", "put"?
+            ├─ YES → POS/ROTATE
+            └─ NO → Is it multi-object or aesthetic goal?
+                ├─ YES → Vague/Complex
+                └─ NO → Default to POS/ROTATE
         
         INTENT SUMMARY:
         - Capture the high-level goal
@@ -273,29 +289,32 @@ class LanguageAgent:
         prompt_lower = prompt.lower()
         
         # Detect primary action
-        if any(word in prompt_lower for word in ['add', 'create', 'place', 'put']):
-            if any(word in prompt_lower for word in ['new', 'another']):
-                command_type = 'ADD/DELETE'
-                primary_action = 'add'
-            else:
-                # Could be placing existing object
-                command_type = 'POS/ROTATE'
-                primary_action = 'place'
-        elif any(word in prompt_lower for word in ['remove', 'delete', 'take away']):
+        if any(word in prompt_lower for word in ['add', 'delete', 'remove', 'take away']):
             command_type = 'ADD/DELETE'
-            primary_action = 'remove'
-        elif any(word in prompt_lower for word in ['move', 'push', 'pull', 'shift']):
+            primary_action = 'add' if 'add' in prompt_lower else 'remove'
+        
+        # Check for "new" or "another" modifier (even with place/put)
+        elif any(phrase in prompt_lower for phrase in ['new ', 'another ', 'bring in']):
+            command_type = 'ADD/DELETE'
+            primary_action = 'add'
+        
+        # POS/ROTATE: Move/rotate/position existing objects
+        elif any(word in prompt_lower for word in ['move', 'push', 'pull', 'shift', 'place', 'put', 'position']):
             command_type = 'POS/ROTATE'
             primary_action = 'move'
+        
         elif any(word in prompt_lower for word in ['rotate', 'turn', 'spin']):
             command_type = 'POS/ROTATE'
             primary_action = 'rotate'
+        
+        # Vague/Complex: Arrangement or aesthetic goals
         elif any(word in prompt_lower for word in ['arrange', 'organize', 'setup', 'make', 'create']):
             command_type = 'Vague/Complex'
             primary_action = 'arrange'
+        
         else:
             command_type = 'Vague/Complex'
-            primary_action = 'place'
+            primary_action = 'arrange'
         
         # Extract objects (simple keyword matching)
         common_objects = ['chair', 'table', 'coffee', 'cup', 'book', 
