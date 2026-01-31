@@ -8,7 +8,7 @@ import uuid
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from database import Database
-
+'''
 class AssetAgent:
     """
     Asset Agent handles:
@@ -40,7 +40,7 @@ class AssetAgent:
 
     def __init__(self, 
                  database: Database, 
-                 assets_path: str = "./webXR/assets/gltf-glb-models"):
+                 assets_path: str = None):
         """
         Description: 
             The Asset agent is used to handle the insertion and deletion of 
@@ -50,12 +50,17 @@ class AssetAgent:
             database: Database instance for scene management
             assets_path: Path to assets folder containing models and metadata
         """
+        if assets_path is None:
+            repo_root = Path(__file__).resolve().parents[2]
+            self.assets_path = repo_root / "webXR" / "assets" / "gltf-glb-models"
+        else:
+            self.assets_path = Path(assets_path)
 
-        genai.configure(api_key='API Key')
+        genai.configure(api_key='API key')
         self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
 
         self.database = database
-        self.assets_path = Path(assets_path)
+        
         
         self.known_assets = self._load_known_assets()
         self.all_assets = self._scan_all_assets()
@@ -108,6 +113,7 @@ class AssetAgent:
                     continue
                 
                 model_file = model_files[0]
+                relative_path = str(model_file).split('webXR/')[-1]
                 
                 # Store asset with full metadata
                 asset_name = metadata["name"]
@@ -115,7 +121,7 @@ class AssetAgent:
                     "name": asset_name,
                     "category": metadata["category"],
                     "subcategory": metadata["subcategory"],
-                    "modelPath": str(model_file),
+                    "modelPath": str(relative_path),
                     "default_scale": metadata["default_scale"],
                     "properties": metadata["properties"],
                     "typical_dimensions": metadata.get("typical_dimensions"),
@@ -244,10 +250,6 @@ class AssetAgent:
             print(f"   ⚠️  LLM matching error: {e}")
             return None
     
-
-
-
-
     # ID generation
     def _generate_unique_id(self, object_name: str) -> str:
             """
@@ -308,13 +310,12 @@ class AssetAgent:
             raise ValueError(f"No asset found matching '{object_name}'")
         
         # Get asset info
-        if matched_name in self.known_assets:
-            # Has metadata - use it
-            return self._create_from_known(matched_name)
-        else:
-            # No metadata - infer it
-            asset_info = self.all_assets[matched_name]
-            return self._create_from_unknown(asset_info)
+        if matched_name not in self.known_assets:
+            raise ValueError(
+                f"Asset '{matched_name}' found but has no metadata.json. "
+                f"Please create metadata file for this asset."
+            )
+        return self._create_from_known(matched_name)
         
     def _create_from_known(self, asset_name: str) -> Dict:
         """
@@ -327,15 +328,18 @@ class AssetAgent:
             Complete object structure
         """
         template = self.known_assets[asset_name]
-        new_id = self._generate_unique_id(asset_name)
+        canonical_name = template["name"]
+        new_id = self._generate_unique_id(canonical_name)
         
-        print(f"   ✅ Using known asset: {asset_name}")
+        print(f"   ✅ Using known asset: {canonical_name}")
+        if asset_name != canonical_name:
+            print(f"      (matched via alias: '{asset_name}')")
         print(f"   Generated ID: {new_id}")
         print(f"   Category: {template['category']}/{template['subcategory']}")
         
         return {
             "id": new_id,
-            "name": asset_name,
+            "name": canonical_name,
             "category": template["category"],
             "subcategory": template["subcategory"],
             "modelPath": template["modelPath"],
@@ -349,160 +353,11 @@ class AssetAgent:
                 "near": []
             }
         }
-    
-
-    def _create_from_unknown(self, asset_info: Dict) -> Dict:
-        """
-        Create object from asset WITHOUT metadata - use LLM to infer metadata.
-        
-        Args:
-            asset_info: Basic asset info from filesystem scan
-            
-        Returns:
-            Object structure with inferred metadata
-        """
-        print(f"   ⚠️  Unknown asset: {asset_info['name']} - inferring metadata with LLM...")
-        
-        # Use LLM to infer metadata
-        metadata = self._infer_metadata(asset_info['name'], asset_info['modelPath'])
-        
-        new_id = self._generate_unique_id(asset_info['name'])
-        
-        print(f"   Generated ID: {new_id}")
-        print(f"   Inferred category: {metadata['category']}/{metadata['subcategory']}")
-        
-        return {
-            "id": new_id,
-            "name": asset_info['name'],
-            "category": metadata["category"],
-            "subcategory": metadata["subcategory"],
-            "modelPath": asset_info["modelPath"],
-            "position": None,
-            "rotation": None,
-            "scale": metadata["scale"],
-            "boundingBox": None,
-            "properties": metadata["properties"],
-            "spatialRelations": {
-                "on": "floor_01",
-                "near": []
-            }
-        }
-    
-
-    def _infer_metadata(self, asset_name: str, model_path: str) -> Dict:
-        """
-        Use LLM to infer metadata for assets without metadata.json
-        
-        Args:
-            asset_name: Name of the asset
-            model_path: Path to model file
-            
-        Returns:
-            Inferred metadata dict
-        """
-        prompt = f"""Asset name: "{asset_name}"
-Model file: {model_path}
-
-Infer the following metadata for this 3D asset and return as JSON:
-{{
-    "category": "furniture" | "vehicle" | "decoration" | "electronics" | "other",
-    "subcategory": "specific type (e.g., seating, lighting, storage)",
-    "scale": {{"x": 0.01, "y": 0.01, "z": 0.01}},
-    "properties": {{
-        "movable": true/false,
-        "interactive": true/false,
-        "weight": "light" | "medium" | "heavy"
-    }}
-}}
-
-Be reasonable with scale - typical values are between 0.001 and 0.5.
-"""
-        
-        try:
-            response = self.model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    temperature=0.3,
-                    max_output_tokens=200,
-                    response_mime_type="application/json"
-                )
-            )
-            
-            metadata = json.loads(response.text)
-            print(f"   ✅ LLM inferred metadata")
-            return metadata
-            
-        except Exception as e:
-            print(f"   ⚠️  LLM inference failed: {e}, using defaults")
-            # Fallback to safe defaults
-            return {
-                "category": "other",
-                "subcategory": "unknown",
-                "scale": {"x": 0.01, "y": 0.01, "z": 0.01},
-                "properties": {
-                    "movable": True,
-                    "interactive": True,
-                    "weight": "medium"
-                }
-            }
-        
-    # ============================================================================
-    # OBJECT DELETION
-    # ============================================================================
-
-    
-    def delete_object(self, object_name: str) -> Dict:
-        """
-        Find and delete an object from the scene.
-        
-        Args:
-            object_name: Name of object to delete (can be partial)
-            
-        Returns:
-            Dict with deletion info: {"success": bool, "object_id": str, "message": str}
-        """
-        print(f"\n🗑️  AssetAgent deleting object: '{object_name}'")
-        
-        # Find object in scene
-        matching_objects = self.database.get_objects_by_name(object_name)
-        
-        if not matching_objects:
-            print(f"   ❌ No objects found matching '{object_name}'")
-            return {
-                "success": False,
-                "object_id": None,
-                "message": f"No objects found matching '{object_name}'"
-            }
-        
-        if len(matching_objects) > 1:
-            print(f"   ⚠️  Multiple objects found ({len(matching_objects)}), deleting first match")
-        
-        # Delete the first matching object
-        obj_to_delete = matching_objects[0]
-        object_id = obj_to_delete['id']
-        
-        # Remove from database
-        success = self.database.remove_object(object_id)
-        
-        if success:
-            print(f"   ✅ Deleted: {object_id} ({obj_to_delete['name']})")
-            return {
-                "success": True,
-                "object_id": object_id,
-                "message": f"Deleted {object_id}"
-            }
-        else:
-            print(f"   ❌ Failed to delete {object_id}")
-            return {
-                "success": False,
-                "object_id": object_id,
-                "message": f"Failed to delete {object_id}"
-            }
         
     def process_command(self, parsed_command: Dict) -> Dict:
         """
         Main entry point from orchestrator.
-        Handles both ADD and DELETE commands.
+        Handles both ADD command.
         
         Args:
             parsed_command: Parsed command from Language Agent containing:
@@ -512,7 +367,6 @@ Be reasonable with scale - typical values are between 0.001 and 0.5.
         Returns:
             Dict with action results:
             - For ADD: {"action": "add", "new_object": {...}, "needs_positioning": True}
-            - For DELETE: {"action": "delete", "object_id": str, "success": bool}
         """
         action = parsed_command.get("action_hints", {}).get("primary_action", "").lower()
         involved_objects = parsed_command.get("involved_objects", [])
@@ -545,12 +399,6 @@ Be reasonable with scale - typical values are between 0.001 and 0.5.
                     "success": False,
                     "message": str(e)
                 }
-        
-        elif action in ["delete", "remove"]:
-            result = self.delete_object(object_name)
-            result["action"] = "delete"
-            return result
-        
         else:
             return {
                 "action": "unknown",
@@ -569,45 +417,19 @@ if __name__ == "__main__":
     agent = AssetAgent(db)
     
     print("\n" + "="*60)
-    print("TEST 1: Add a chair")
+    print("TEST 1: Add a office desk")
     print("="*60)
     
     # Simulate parsed command from Language Agent
     add_command = {
         "action_hints": {"primary_action": "add"},
-        "involved_objects": ["chair"]
+        "involved_objects": ["office desk"]
     }
     
     result = agent.process_command(add_command)
     print(f"\nResult: {json.dumps(result, indent=2)}")
-    
-    print("\n" + "="*60)
-    print("TEST 2: Delete a chair")
-    print("="*60)
-    
-    delete_command = {
-        "action_hints": {"primary_action": "delete"},
-        "involved_objects": ["chair"]
-    }
-    
-    result = agent.process_command(delete_command)
-    print(f"\nResult: {json.dumps(result, indent=2)}")
-    
-    print("\n" + "="*60)
-    print("TEST 3: Add unknown object (should use LLM)")
-    print("="*60)
-    
-    # This will only work if you have other assets in the folder
-    add_unknown = {
-        "action_hints": {"primary_action": "add"},
-        "involved_objects": ["bookshelf"]  # Assuming this doesn't have metadata
-    }
-    
-    result = agent.process_command(add_unknown)
-    print(f"\nResult: {json.dumps(result, indent=2)}")
 
-    
-'''
+
     
 
 

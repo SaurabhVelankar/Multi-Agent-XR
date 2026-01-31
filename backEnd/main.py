@@ -33,7 +33,7 @@ scene_database = Database(app=app)
 # Initialize specialized agents
 language_agent = LanguageAgent()
 scene_agent = SceneAgent()
-asset_agent = AssetAgent()
+asset_agent = AssetAgent(scene_database)
 code_agent = CodeAgent(scene_database)
 verification_agent = VerificationAgent(scene_database)
 

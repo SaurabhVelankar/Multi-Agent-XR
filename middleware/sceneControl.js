@@ -1,4 +1,75 @@
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { gsap } from 'gsap';
+
+
+const gltfLoader = new GLTFLoader();
+
+/**
+ * Add new object to scene from WebSocket message
+ */
+export function addObjectToScene(data, loadedObjects, scene) {
+  console.log('🎨 Adding new object to scene:', data);
+  
+  const { objectId, objectData } = data;
+  
+  // Check if already loaded
+  if (loadedObjects.has(objectId)) {
+    console.warn(`Object ${objectId} already exists in scene`);
+    return;
+  }
+  
+  // Load the 3D model
+  gltfLoader.load(
+    objectData.modelPath,
+    (gltf) => {
+      // Apply transformations from database
+      gltf.scene.position.set(
+        objectData.position.x,
+        objectData.position.y,
+        objectData.position.z
+      );
+      gltf.scene.rotation.set(
+        objectData.rotation.x,
+        objectData.rotation.y,
+        objectData.rotation.z
+      );
+      gltf.scene.scale.set(
+        objectData.scale.x,
+        objectData.scale.y,
+        objectData.scale.z
+      );
+      
+      // Store metadata for agent access
+      gltf.scene.userData = {
+        id: objectData.id,
+        name: objectData.name,
+        category: objectData.category,
+        properties: objectData.properties,
+        dbReference: objectData
+      };
+      
+      // Add to scene
+      scene.add(gltf.scene);
+      loadedObjects.set(objectId, gltf.scene);
+      
+      console.log(`✅ Added ${objectData.name} (${objectId}) to scene`);
+      
+      // Optional: Spawn animation
+      gltf.scene.scale.set(0, 0, 0);
+      gsap.to(gltf.scene.scale, {
+        x: objectData.scale.x,
+        y: objectData.scale.y,
+        z: objectData.scale.z,
+        duration: 0.5,
+        ease: "back.out(1.7)"
+      });
+    },
+    undefined,
+    (error) => {
+      console.error(`❌ Failed to load ${objectId}:`, error);
+    }
+  );
+}
 
 /**
  * Update object position from WebSocket message

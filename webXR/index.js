@@ -54,7 +54,7 @@ async function setupScene({ scene, camera, renderer, player, controllers }) {
 
   // head tracking
   // Add websocket
-  websocket = setupWebSocket(loadedObjects);
+  websocket = setupWebSocket(loadedObjects, scene);
   initHeadTracking(websocket);
 
   renderer.xr.addEventListener('sessionstart', async() =>{

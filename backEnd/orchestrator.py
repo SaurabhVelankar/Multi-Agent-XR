@@ -196,11 +196,30 @@ class Orchestrator:
     
     def _asset_node(self, state: MASState) -> MASState:
         """
-        Asset Agent: Select/add/remove assets
+        Asset Agent: Create new objects (ADD only)
         """
         print("🎨 Step 2: Asset Agent processing...")
+        parsed_command = state.get("parsed_command")
 
+        if not parsed_command:
+            print("❌ ERROR: No parsed_command in state")
+            state["success"] = False
+            state["error_message"] = "Asset Agent requires parsed_command"
+            return state
+        
+        # Process with AssetAgent
+        result = self.asset_agent.process_command(parsed_command)
 
+        if not result.get("success", False):
+            print(f"❌ Asset operation failed: {result.get('message')}")
+            state["success"] = False
+            state["error_message"] = result.get("message", "Asset operation failed")
+            return state
+
+        state["selected_assets"] = result
+    
+        print(f"✅ Asset operation complete: {result.get('message', '')}\n")
+        return state
     
     
     def _scene_node(self, state: MASState) -> MASState:
@@ -211,34 +230,85 @@ class Orchestrator:
 
         parsed_command = state.get("parsed_command")
         scene_state = state.get("scene_state")
+        selected_assets = state.get("selected_assets")
 
-        feedback = None
-        if state.get("iteration_count", 0) > 0:
-            collision_info = state.get("collision_info", {})
-            if collision_info:
-                feedback = {
-                    "previous_attempt": state.get("proposed_placement", {}),
-                    "collision_with": collision_info.get("colliding_objects", []),
-                    "suggestion": collision_info.get("suggestion", "Try alternative placement")
-                }
+        # CASE 1: ADD operation - Position new object
+        if selected_assets and selected_assets.get("needs_positioning"):
+            new_object = selected_assets["new_object"]
+            
+            print(f"   Positioning new object: {new_object['id']}")
+            
+            # Get feedback from previous iteration if any (for collision retry)
+            feedback = None
+            if state.get("iteration_count", 0) > 0:
+                collision_info = state.get("collision_info")
+                if collision_info:
+                    feedback = {
+                        "previous_attempt": state.get("proposed_placement"),
+                        "collision_with": collision_info.get("colliding_objects", []),
+                        "suggestion": collision_info.get("suggestion", "Try alternative placement")
+                    }
+            
+            # Calculate position/rotation using Scene Agent
+            spatial_updates = self.scene_agent.calculate_spatial_transformation(
+                parsed_command,
+                scene_state,
+                self.user_position,
+                feedback=feedback
+            )
+            
+            if not spatial_updates:
+                print("❌ Failed to calculate spatial updates for new object")
+                state["success"] = False
+                state["error_message"] = "Spatial calculation failed"
+                return state
+            
+            # Fill in position and rotation in the new object
+            new_object["position"] = spatial_updates["position"]
+            new_object["rotation"] = spatial_updates["rotation"]
+            
+            # ✅ SKIP bounding box calculation for now
+            # new_object["boundingBox"] will remain None
+            
+            print(f"   ✅ New position: {new_object['position']}")
+            print(f"   ✅ New rotation: {new_object['rotation']}")
+            
+            # Store complete object for execution
+            state["proposed_placement"] = {
+                "action": "add",
+                "complete_object": new_object
+            }
 
-        spatial_updates = self.scene_agent.calculate_spatial_transformation(
-            parsed_command,
-            scene_state,
-            self.user_position,
-            feedback=feedback
-        )
+        # CASE 2: normal placement action
+        else: 
+            feedback = None
+            if state.get("iteration_count", 0) > 0:
+                collision_info = state.get("collision_info", {})
+                if collision_info:
+                    feedback = {
+                        "previous_attempt": state.get("proposed_placement", {}),
+                        "collision_with": collision_info.get("colliding_objects", []),
+                        "suggestion": collision_info.get("suggestion", "Try alternative placement")
+                    }
 
-        if not spatial_updates:
-            print("❌ Failed to calculate spatial updates")
-            state["success"] = False
-            state["error_message"] = "Spatial calculation failed"
-            state["proposed_placement"] = None
-            return state
-        
+            spatial_updates = self.scene_agent.calculate_spatial_transformation(
+                parsed_command,
+                scene_state,
+                self.user_position,
+                feedback=feedback
+            )
+
+            if not spatial_updates:
+                print("❌ Failed to calculate spatial updates")
+                state["success"] = False
+                state["error_message"] = "Spatial calculation failed"
+                state["proposed_placement"] = None
+                return state
+
+            state["proposed_placement"] = spatial_updates
+
         print(f"✅ Calculated updates\n")
-        state["proposed_placement"] = spatial_updates
-        
+
         return state
         
 
@@ -324,25 +394,53 @@ class Orchestrator:
             state["error_message"] = "No placement to execute"
             return state
         
-        # Execute transformation
-        result = self.code_agent.execute_transformation(proposed_placement)
-        
-        success = result.get("success", False)
-        
-        if success:
-            print(f"\n✅ Command completed successfully!")
-            print(f"   {result.get('message', '')}")
+        action = proposed_placement.get("action")
+
+
+        if action == "add":
+            complete_object = proposed_placement["complete_object"]
+            
+            print(f"   Adding {complete_object['id']} to scene...")
+            print(f"   Name: {complete_object['name']}")
+            print(f"   Position: ({complete_object['position']['x']:.2f}, {complete_object['position']['y']:.2f}, {complete_object['position']['z']:.2f})")
+            print(f"   Rotation: ({complete_object['rotation']['x']:.2f}, {complete_object['rotation']['y']:.2f}, {complete_object['rotation']['z']:.2f})")
+            
+            # ✅ Add directly to database (skip CodeAgent)
+            self.database.objects.append(complete_object)
+            
+            # ✅ Broadcast to WebSocket
+            self.database._broadcast_update('object_added', {
+                'objectId': complete_object['id'],
+                'objectData': complete_object,
+                'name': complete_object['name']
+            })
+            
+            print(f"   ✅ Successfully added {complete_object['id']}\n")
+            
             state["success"] = True
-            state["final_actions"] = result.get("results", [])
+            state["final_actions"] = [{
+                "success": True,
+                "object_id": complete_object['id'],
+                "action": "add",
+                "message": f"Added {complete_object['id']}"
+            }]
         else:
-            print(f"\n❌ Command failed to execute")
-            print(f"   Error: {result.get('message', 'Unknown error')}")
-            state["success"] = False
-            state["error_message"] = result.get("message", "Execution failed")
+            # Use CodeAgent for normal transformations
+            result = self.code_agent.execute_transformation(proposed_placement)
+            success = result.get("success", False)
+            
+            if success:
+                print(f"\n✅ Transformation completed successfully!")
+                state["success"] = True
+                state["final_actions"] = result.get("results", [])
+            else:
+                print(f"\n❌ Transformation failed")
+                state["success"] = False
+                state["error_message"] = result.get("message", "Execution failed")
         
         print(f"{'='*60}\n")
         
-        # Store in conversation history
+        # Store turn in history
         self._store_turn(state)
         
         return state
@@ -597,7 +695,7 @@ if __name__ == "__main__":
     db = Database()
     language_agent = LanguageAgent()
     scene_agent = SceneAgent()
-    asset_agent = AssetAgent() 
+    asset_agent = AssetAgent(db) 
     code_agent = CodeAgent(db)
     verification_agent = VerificationAgent(db)
     
@@ -615,7 +713,7 @@ if __name__ == "__main__":
     test_commands = [
         
         
-        "move the chair to the right"
+        "add a chair"
     ]
     '''
         "rotate the table 90 degrees",

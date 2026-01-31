@@ -4,7 +4,7 @@ import google.generativeai as genai
 class LanguageAgent:
     def __init__(self):
         # Configure Gemini API
-        genai.configure(api_key='API Key')
+        genai.configure(api_key='API key')
         self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
     
     def parse_prompt(self, 
@@ -332,7 +332,7 @@ if __name__ == "__main__":
         # Simple commands
         #"move the chair left",
         #"rotate the table 90 degrees",
-        "add a red chair and place it near table",
+        "add an office desk",
         # "place the cup on the table",
         #"put the chair next to the desk",
         

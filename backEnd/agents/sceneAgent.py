@@ -17,7 +17,7 @@ class SceneAgent:
     """
     def __init__(self, use_llm_reasoning=True):
         # Google Gemini Studio initialize
-        genai.configure(api_key='API Key')
+        genai.configure(api_key='API key')
         self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
         self.use_llm_reasoning = use_llm_reasoning
 
@@ -233,8 +233,8 @@ class SceneAgent:
             response = self.model.generate_content(
                 prompt,
                 generation_config=genai.types.GenerationConfig(
-                    temperature=0.2,  # Low temperature for consistent spatial reasoning
-                    max_output_tokens=800,  # Increased for complex multi-object responses
+                    temperature=0.1,  # Low temperature for consistent spatial reasoning
+                    max_output_tokens=2048,  # Increased for complex multi-object responses
                     response_mime_type="application/json"
                 )
             )

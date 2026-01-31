@@ -1,15 +1,15 @@
-import { updateObjectPosition, updateObjectRotation } from './sceneControl.js';
+import {addObjectToScene,updateObjectPosition, updateObjectRotation} from './sceneControl.js';
 
 let ws = null;
 let loadedObjects = null;
-
+let scene = null;
 /**
  * Connect to FastAPI WebSocket
  */
 
-export function setupWebSocket(objectsMap) {
+export function setupWebSocket(objectsMap, threeScene) {
   loadedObjects = objectsMap;
-  
+  scene = threeScene;
   // ws = new WebSocket('ws://localhost:8000/ws/scene');
   // const host = window.location.hostname; // Gets "10.0.0.97" for headset
   // const wsUrl = `ws://${host}:8000/ws/scene`;
@@ -34,11 +34,16 @@ export function setupWebSocket(objectsMap) {
       case 'object_rotation_updated':
         updateObjectRotation(message.data, loadedObjects);
         break;
+      case 'object_added': 
+        addObjectToScene(message.data, loadedObjects, scene);
+        break;
       case 'scene_saved':
         console.log('Scene updated from backend');
         break;
     }
   };
+
+
 
   ws.onerror = (error) => {
     console.error('❌ WebSocket error:', error);
@@ -46,7 +51,7 @@ export function setupWebSocket(objectsMap) {
 
   ws.onclose = () => {
     console.log('🔌 WebSocket disconnected, reconnecting...');
-    setTimeout(() => setupWebSocket(loadedObjects), 3000); // Auto-reconnect
+    setTimeout(() => setupWebSocket(loadedObjects, scene), 3000); // Auto-reconnect
   };
 
 
