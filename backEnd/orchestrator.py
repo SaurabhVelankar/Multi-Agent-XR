@@ -234,9 +234,20 @@ class Orchestrator:
 
         # CASE 1: ADD operation - Position new object
         if selected_assets and selected_assets.get("needs_positioning"):
-            new_object = selected_assets["new_object"]
+            new_objects = selected_assets.get("new_objects", [])
+            if not new_objects:
+                new_objects = [selected_assets["new_object"]]
             
-            print(f"   Positioning new object: {new_object['id']}")
+            print(f"   Positioning {len(new_objects)} new object(s)")
+
+            object_details = [
+                {
+                    "id": obj["id"],
+                    "name": obj["name"],
+                    "category": obj["category"]
+                }
+                for obj in new_objects
+            ]
             
             # Get feedback from previous iteration if any (for collision retry)
             feedback = None
@@ -254,6 +265,7 @@ class Orchestrator:
                 parsed_command,
                 scene_state,
                 self.user_position,
+                new_objects_to_position=object_details, 
                 feedback=feedback
             )
             
@@ -263,20 +275,32 @@ class Orchestrator:
                 state["error_message"] = "Spatial calculation failed"
                 return state
             
-            # Fill in position and rotation in the new object
-            new_object["position"] = spatial_updates["position"]
-            new_object["rotation"] = spatial_updates["rotation"]
+            if "objects" in spatial_updates:
+                positioned_objects = spatial_updates["objects"]
+            else:
+                # Single object format - wrap it
+                positioned_objects = [spatial_updates]
             
-            # ✅ SKIP bounding box calculation for now
-            # new_object["boundingBox"] will remain None
+            complete_objects = []
+            for new_obj in new_objects:
+                # Find matching position data
+                pos_data = next(
+                    (p for p in positioned_objects if p.get("object_id") == new_obj["id"]),
+                    None
+                )
+                
+                if pos_data:
+                    new_obj["position"] = pos_data.get("position")
+                    new_obj["rotation"] = pos_data.get("rotation")
+                    
+                    print(f"   ✅ {new_obj['id']} positioned at {new_obj['position']}")
+                    complete_objects.append(new_obj)
+                else:
+                    print(f"   ⚠️ No position calculated for {new_obj['id']}")
             
-            print(f"   ✅ New position: {new_object['position']}")
-            print(f"   ✅ New rotation: {new_object['rotation']}")
-            
-            # Store complete object for execution
             state["proposed_placement"] = {
-                "action": "add",
-                "complete_object": new_object
+                "action": "add_multiple" if len(complete_objects) > 1 else "add",
+                "complete_objects": complete_objects  # ✅ Array
             }
 
         # CASE 2: normal placement action
@@ -397,33 +421,56 @@ class Orchestrator:
         action = proposed_placement.get("action")
 
 
-        if action == "add":
-            complete_object = proposed_placement["complete_object"]
+        if action in ["add", "add_multiple"]:
+            complete_objects = proposed_placement.get("complete_objects", [])
             
-            print(f"   Adding {complete_object['id']} to scene...")
-            print(f"   Name: {complete_object['name']}")
-            print(f"   Position: ({complete_object['position']['x']:.2f}, {complete_object['position']['y']:.2f}, {complete_object['position']['z']:.2f})")
-            print(f"   Rotation: ({complete_object['rotation']['x']:.2f}, {complete_object['rotation']['y']:.2f}, {complete_object['rotation']['z']:.2f})")
+            if not complete_objects:
+                print("❌ No objects to add")
+                state["success"] = False
+                state["error_message"] = "No objects to add"
+                return state
             
-            # ✅ Add directly to database (skip CodeAgent)
-            self.database.objects.append(complete_object)
+            print(f"   Adding {len(complete_objects)} object(s) to scene...")
             
-            # ✅ Broadcast to WebSocket
-            self.database._broadcast_update('object_added', {
-                'objectId': complete_object['id'],
-                'objectData': complete_object,
-                'name': complete_object['name']
-            })
+            success_count = 0
+            failed_objects = []
             
-            print(f"   ✅ Successfully added {complete_object['id']}\n")
+            for obj in complete_objects:
+                print(f"   Adding {obj['id']} ({obj['name']})...")
+                print(f"      Position: ({obj['position']['x']:.2f}, {obj['position']['y']:.2f}, {obj['position']['z']:.2f})")
+                print(f"      Rotation: ({obj['rotation']['x']:.2f}, {obj['rotation']['y']:.2f}, {obj['rotation']['z']:.2f})")
+                
+                # Add to database (in-memory)
+                try:
+                    self.database.objects.append(obj)
+                    
+                    # Broadcast to WebSocket
+                    self.database._broadcast_update('object_added', {
+                        'objectId': obj['id'],
+                        'objectData': obj,
+                        'name': obj['name']
+                    })
+                    
+                    print(f"      ✅ Successfully added\n")
+                    success_count += 1
+                    
+                except Exception as e:
+                    print(f"      ❌ Failed: {e}\n")
+                    failed_objects.append(obj['id'])
             
-            state["success"] = True
-            state["final_actions"] = [{
-                "success": True,
-                "object_id": complete_object['id'],
-                "action": "add",
-                "message": f"Added {complete_object['id']}"
-            }]
+            if success_count == len(complete_objects):
+                state["success"] = True
+                state["final_actions"] = [{
+                    "success": True,
+                    "count": success_count,
+                    "action": "add_multiple" if len(complete_objects) > 1 else "add",
+                    "message": f"Added {success_count} object(s)"
+                }]
+            else:
+                state["success"] = False
+                state["error_message"] = f"Only {success_count}/{len(complete_objects)} objects added"
+                if failed_objects:
+                    state["error_message"] += f". Failed: {', '.join(failed_objects)}"
         else:
             # Use CodeAgent for normal transformations
             result = self.code_agent.execute_transformation(proposed_placement)
@@ -713,7 +760,7 @@ if __name__ == "__main__":
     test_commands = [
         
         
-        "add a chair"
+        "add 2 lamps and 3 tables and place them evenly"
     ]
     '''
         "rotate the table 90 degrees",
