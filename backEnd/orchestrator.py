@@ -442,7 +442,7 @@ class Orchestrator:
                 
                 # Add to database (in-memory)
                 try:
-                    self.database.objects.append(obj)
+                    self.database.add_object(obj)
                     
                     # Broadcast to WebSocket
                     self.database._broadcast_update('object_added', {

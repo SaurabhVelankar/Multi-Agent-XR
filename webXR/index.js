@@ -105,13 +105,20 @@ function loadStructure(scene, textureLoader, textures) {
         map: wallTexture
       });
 
-      // Create front face
+      const isFrontWall = wallData.id === 'wall_front';
+
+
+      // Create front face, only front wall to be one-sided for visibility
       const wall1 = new THREE.Mesh(wallGeometry, wallMaterial);
-      wall1.position.set(wallData.position.x, wallData.position.y, wallData.position.z);
-      wall1.rotation.set(wallData.rotation.x, wallData.rotation.y, wallData.rotation.z);
-      wall1.scale.set(wallData.scale.x, wallData.scale.y, wallData.scale.z);
-      wall1.userData.id = `${wallData.id}_front`;
-      scene.add(wall1);
+      if (!isFrontWall){
+        
+        wall1.position.set(wallData.position.x, wallData.position.y, wallData.position.z);
+        wall1.rotation.set(wallData.rotation.x, wallData.rotation.y, wallData.rotation.z);
+        wall1.scale.set(wallData.scale.x, wallData.scale.y, wallData.scale.z);
+        wall1.userData.id = `${wallData.id}_front`;
+        scene.add(wall1);
+        loadedObjects.set(`${wallData.id}_front`, wall1);
+      }
 
       // Create back face (for visibility from both sides)
       const wall2 = new THREE.Mesh(wallGeometry, wallMaterial);

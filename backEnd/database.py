@@ -11,6 +11,8 @@ import json
 from typing import Dict, List, Optional, Tuple
 from pathlib import Path
 import asyncio
+import copy
+import re
 
 class Database:
     """ _____________________________________________________________
@@ -28,13 +30,44 @@ class Database:
         """
         repo_root = Path(__file__).resolve().parents[1]
         self.json_path = repo_root / "middleware" / "sceneData.json"
+        self.added_object_ids = set()
+        self.id_counters = {}
         self.app = app
         self.load()
+
+        self._initialize_id_counters()
+
+
+    def _initialize_id_counters(self):
+        """
+        Initialize ID counters based on existing objects in the scene.
+        This ensures new objects get sequential IDs.
+        
+        Example:
+            If scene has chair_01, chair_02, chair_03
+            Then id_counters['chair'] = 3
+            Next chair will be chair_04
+        """
+        import re
+        self.id_counters.clear()  # Reset counters
+        
+        for obj in self.objects:
+            # Extract base name and number from ID (e.g., "chair_03" → "chair", 3)
+            match = re.match(r'(.+?)_(\d+)$', obj['id'])
+            if match:
+                base_name = match.group(1)
+                num = int(match.group(2))
+                # Keep track of highest number for each base name
+                self.id_counters[base_name] = max(self.id_counters.get(base_name, 0), num)
+        
+        print(f"🔢 ID Counters initialized: {self.id_counters}")
 
     """ _____________________________________________________________
         Basic functions: Load & Save
         _____________________________________________________________
     """
+
+    
 
     def load(self):
         # load scene from JSON file
@@ -296,10 +329,13 @@ class Database:
         if 'id' not in object_data:
             # automatically generate an id from base_name
             base_name = object_data.get('name', 'object').replace(' ', '_')
-            count = len([o for o in self.objects if o['name'] == object_data.get('name')])
-            object_data['id'] = f"{base_name}_{count + 1:02d}"
+            current_count = self.id_counters.get(base_name, 0)
+            next_id = current_count + 1
+            self.id_counters[base_name] = next_id
+            object_data['id'] = f"{base_name}_{next_id:02d}"
 
         self.objects.append(object_data)
+        self.added_object_ids.add(object_data['id'])
         print(f"Added new object: {object_data['name']} ({object_data['id']})")
         return object_data['id']
 
@@ -319,6 +355,25 @@ class Database:
                 print(f"Removed object: {removed['name']} ({object_id})")
                 return True
         return False
+    
+    def clear_added_objects(self):
+        """
+        Remove all objects that were added during this session.
+        Keeps original objects from sceneData.json intact.
+        """
+        if not self.added_object_ids:
+            print("No added objects to clear")
+            return 0
+        
+        removed_count = 0
+        for object_id in list(self.added_object_ids):
+            if self.remove_object(object_id):
+                removed_count += 1
+        
+        self.added_object_ids.clear()
+        self._initialize_id_counters()
+        print(f"Cleared {removed_count} added object(s)")
+        return removed_count
     
     """ _____________________________________________________________
         Spatial Calculation Methods (measure spatial relationships)

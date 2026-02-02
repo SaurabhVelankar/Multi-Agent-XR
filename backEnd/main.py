@@ -82,6 +82,16 @@ manager = ConnectionManager()
 @app.websocket("/ws/scene")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
+    print("🔄 New client connected - clearing added objects")
+    removed = scene_database.clear_added_objects()
+
+    if removed > 0:
+        # Broadcast the reset notification
+        await broadcast_scene_update('scene_reset', {
+            'message': f'Cleared {removed} added object(s)',
+            'removed_count': removed
+        })
+        
     try:
         while True:
             # Keep connection alive and listen for messages

@@ -40,6 +40,12 @@ export function setupWebSocket(objectsMap, threeScene) {
       case 'scene_saved':
         console.log('Scene updated from backend');
         break;
+      case 'scene_reset':
+        console.log('🔄 Backend cleared added objects - reloading...');
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+        break;
     }
   };
 

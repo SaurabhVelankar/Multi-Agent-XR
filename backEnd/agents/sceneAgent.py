@@ -314,7 +314,7 @@ class SceneAgent:
             # Validate
             if not self._validate_transformation(result):
                 print("⚠️ LLM output validation failed, using fallback")
-                return self._fallback_calculation(parsed_command, scene_state, user_position, new_objects)
+                return self._fallback_calculation(parsed_command, scene_state, user_position, new_objects_to_position)
             
             print(f"   ✅ Spatial reasoning complete")
             if 'objects' in result:
@@ -324,7 +324,7 @@ class SceneAgent:
         
         except Exception as e:
             print(f"❌ LLM spatial reasoning error: {e}")
-            return self._fallback_calculation(parsed_command, scene_state, user_position, new_objects)
+            return self._fallback_calculation(parsed_command, scene_state, user_position, new_objects_to_position)
         
         except json.JSONDecodeError as e:
             print(f"❌ LLM JSON parsing error: {e}")
