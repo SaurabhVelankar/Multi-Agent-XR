@@ -1,5 +1,98 @@
     /*
     {
+      "id": "table_01",
+      "name": "table",
+      "category": "furniture",
+      "subcategory": "surface",
+      "modelPath": "assets/gltf-glb-models/table/Table.gltf",
+      "position": {
+        "x": 0,
+        "y": -1,
+        "z": -1.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.3333333333333333,
+        "y": 0.3333333333333333,
+        "z": 0.3333333333333333
+      },
+      "boundingBox": {
+        "min": {
+          "x": -0.3,
+          "y": -1,
+          "z": -1.8
+        },
+        "max": {
+          "x": 0.3,
+          "y": -0.7,
+          "z": -1.2
+        }
+      },
+      "properties": {
+        "movable": true,
+        "interactive": true,
+        "canPlaceOn": true,
+        "weight": "medium"
+      },
+      "spatialRelations": {
+        "on": "floor_01",
+        "near": [
+          "chair_01",
+          "chair_02",
+          "lamp_01"
+        ]
+      }
+    },
+    {
+      "id": "scooter_01",
+      "name": "scooter",
+      "category": "vehicle",
+      "subcategory": "personal_transport",
+      "modelPath": "assets/gltf-glb-models/scooter/scooter.glb",
+      "position": {
+        "x": -0.5,
+        "y": -1,
+        "z": -1
+      },
+      "rotation": {
+        "x": 0,
+        "y": 4.1887902047863905,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.008,
+        "y": 0.008,
+        "z": 0.008
+      },
+      "boundingBox": {
+        "min": {
+          "x": -0.6,
+          "y": -1,
+          "z": -1.1
+        },
+        "max": {
+          "x": -0.4,
+          "y": -0.7,
+          "z": -0.9
+        }
+      },
+      "properties": {
+        "movable": true,
+        "interactive": true,
+        "canRide": false,
+        "weight": "medium"
+      },
+      "spatialRelations": {
+        "on": "floor_01",
+        "leftOf": "table_01",
+        "near": "wall_left"
+      }
+    },
+    {
       "id": "chair_01",
       "name": "chair",
       "category": "furniture",

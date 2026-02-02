@@ -73,6 +73,19 @@ class LanguageAgent:
         ✅ "put things in order", "set up for dinner"
         - KEY: Requires planning, multiple steps, or unclear intent
 
+        INVOLVED OBJECTS - CRITICAL RULES:
+        - If an adjective describes a DIFFERENT TYPE/VARIANT of the object, it is PART of the object name.
+          ✅ "add an ergonomic chair"  → involved_objects: ["ergonomic chair"]
+          ✅ "add a dining table"      → involved_objects: ["dining table"]
+          ✅ "add an office desk"      → involved_objects: ["office desk"]
+          ✅ "add a coffee table"      → involved_objects: ["coffee table"]
+        - If an adjective describes appearance/size/color only, it is NOT part of the object name.
+          ✅ "add a red chair"         → involved_objects: ["chair"]
+          ✅ "add a small table"       → involved_objects: ["table"]
+          ✅ "add a big lamp"          → involved_objects: ["lamp"]
+        - Type-variant adjectives (ergonomic, dining, office, coffee, standing, folding) STAY with the object.
+        - Appearance adjectives (red, blue, big, small, tall, short) do NOT.
+
         SPATIAL CONCEPTS:
         - DON'T reduce to simple keywords
         - PRESERVE the natural language descriptions
@@ -113,13 +126,13 @@ class LanguageAgent:
             }
         }
         
-        Input: "add a red chair next to the table"
+        Input: "add an ergonomic chair next to the table"
         {
-            "original_prompt": "add a red chair next to the table",
+            "original_prompt": "add an ergonomic chair next to the table",
             "command_type": "ADD/DELETE",
-            "involved_objects": ["chair", "table"],
-            "spatial_concepts": ["next to table", "red colored chair"],
-            "intent_summary": "Add a red chair with spatial relation to existing table",
+            "involved_objects": ["ergonomic chair", "table"],
+            "spatial_concepts": ["next to table"],
+            "intent_summary": "Add an ergonomic chair next to the existing table",
             "action_hints": {
                 "primary_action": "add",
                 "requires_asset_selection": true,

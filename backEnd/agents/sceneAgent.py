@@ -319,6 +319,8 @@ class SceneAgent:
             print(f"   ✅ Spatial reasoning complete")
             if 'objects' in result:
                 print(f"      Positioned {len(result['objects'])} objects")
+            if 'reasoning' in result:
+                print(f"      💭 Reasoning: {result['reasoning']}")
             
             return result
         
