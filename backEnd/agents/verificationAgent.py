@@ -82,7 +82,6 @@ class VerificationAgent:
             
             matching_ids = json.loads(response.text)
             
-            # Get full objects
             result = [obj for obj in all_objects if obj['id'] in matching_ids]
             
             if result:

@@ -5,6 +5,8 @@ import sys
 from pathlib import Path
 from typing import Dict, Optional, List
 import uuid
+import re
+
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from database import Database
@@ -52,7 +54,7 @@ class AssetAgent:
         print(f"   Total assets discovered: {len(self.all_assets)}")
 
 
-    # Asset library loading
+    # Asset loading
     def _load_known_assets(self) -> Dict[str, Dict]:
 
         """
@@ -63,16 +65,12 @@ class AssetAgent:
             Dict mapping asset names to their metadata
         """
 
-
-
         library = {}
-
 
         if not self.assets_path.exists():
             print(f"⚠️  Assets path not found: {self.assets_path}")
             return library
         
-
         # Scan all subdirectories
         for asset_dir in self.assets_path.iterdir():
             if not asset_dir.is_dir():
@@ -111,7 +109,6 @@ class AssetAgent:
                     "has_metadata": True
                 }
                 
-                # Register aliases for flexible matching
                 for alias in metadata.get("aliases", []):
                     library[alias] = library[asset_name]
                 
@@ -140,7 +137,6 @@ class AssetAgent:
             if not asset_dir.is_dir():
                 continue
             
-            # Find model files
             model_files = list(asset_dir.glob("*.gltf")) + list(asset_dir.glob("*.glb"))
             if not model_files:
                 continue
@@ -169,17 +165,13 @@ class AssetAgent:
         Returns:
             List of {object: str, quantity: int} dicts
         """
-        import re
         
         result = []
-        
-        # Pattern: number + object (e.g., "3 lamps", "2 chairs")
-        # Matches: "3 lamps", "two chairs", "a table"
+
         pattern = r'(\d+|one|two|three|four|five|six|seven|eight|nine|ten|a|an)\s+(\w+)'
         
         matches = re.findall(pattern, prompt.lower())
         
-        # Word to number mapping
         word_to_num = {
             'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
             'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
@@ -188,7 +180,6 @@ class AssetAgent:
         
         # Process matches
         for num_word, obj_word in matches:
-            # Convert number word to int
             if num_word.isdigit():
                 quantity = int(num_word)
             else:
@@ -230,20 +221,17 @@ class AssetAgent:
         Returns:
             Asset name if found, None otherwise
         """
-        # Try exact match first (case-insensitive)
+        # Try exact match first
         object_name_lower = object_name.lower()
-        
-        # Check known assets (includes aliases)
+        # Check known assets
         for asset_name in self.known_assets.keys():
             if asset_name.lower() == object_name_lower:
                 return asset_name
-        
         # Check all discovered assets
         for asset_name in self.all_assets.keys():
             if asset_name.lower() == object_name_lower:
                 return asset_name
-        
-        # If no exact match, use LLM for semantic matching
+        # If no exact match, use LLM semantic matching
         print(f"   🔍 No exact match for '{object_name}', trying semantic search...")
         return self._llm_find_match(object_name)
 
@@ -315,7 +303,6 @@ class AssetAgent:
                 obj['id'] for obj in existing_objects 
                 if obj['id'].startswith(f"{base_name}_")
             ]
-
             pending_ids = [
                 obj['id'] for obj in self.pending_objects
                 if obj['id'].startswith(f"{base_name}_")
@@ -350,19 +337,14 @@ class AssetAgent:
             
         Returns:
             Complete object structure (except position/rotation)
-            
-        Raises:
-            ValueError: If asset not found or cannot be created
         """
         print(f"\n🎨 AssetAgent creating object: '{object_name}'")
         
-        # Find matching asset
         matched_name = self._find_best_match(object_name)
         
         if not matched_name:
             raise ValueError(f"No asset found matching '{object_name}'")
         
-        # Get asset info
         if matched_name not in self.known_assets:
             raise ValueError(
                 f"Asset '{matched_name}' found but has no metadata.json. "
@@ -434,35 +416,6 @@ class AssetAgent:
                 "message": "No objects specified"
             }
         
-        '''
-        object_name = involved_objects[0]
-        
-        if action == "add":
-            try:
-                # Create object (without position/rotation)
-                new_object = self.create_object(object_name)
-                
-                return {
-                    "action": "add",
-                    "new_object": new_object,
-                    "needs_positioning": True,
-                    "success": True,
-                    "message": f"Created {new_object['id']}"
-                }
-                
-            except ValueError as e:
-                return {
-                    "action": "add",
-                    "success": False,
-                    "message": str(e)
-                }
-        else:
-            return {
-                "action": "unknown",
-                "success": False,
-                "message": f"Unknown action: {action}"
-            }
-        '''
         if action == "add":
             try:
                 self.pending_objects = []

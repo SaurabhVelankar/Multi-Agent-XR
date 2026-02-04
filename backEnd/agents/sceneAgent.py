@@ -105,12 +105,8 @@ class SceneAgent:
                                feedback: Optional[Dict] = None,
                                new_objects_to_position: Optional[List[Dict]] = None
                                ) -> Dict:
-        """
-        Use LLM to calculate exact spatial transformation.
-        Now leverages the full semantic context from Language Agent.
-        """
 
-        # Prepare the context for the LLM
+        # LLM context
         scene_objects = [
             {
                 'id': obj['id'],
@@ -340,21 +336,18 @@ class SceneAgent:
     def _validate_transformation(self, result: Dict) -> bool:
         """
         Validate LLM output has correct structure.
-        Now handles both single-object and multi-object responses.
         """
         # Check if it's a multi-object response
         if 'objects' in result:
             if not isinstance(result['objects'], list) or len(result['objects']) == 0:
                 return False
             
-            # Validate each object in the array
             for obj in result['objects']:
                 if not self._validate_single_object(obj):
                     return False
             
             return True
         else:
-            # Single-object response
             return self._validate_single_object(result)
     
     def _validate_single_object(self, obj: Dict) -> bool:
@@ -552,5 +545,3 @@ if __name__ == "__main__":
             print(json.dumps(result, indent=2))
         else:
             print("\n❌ Failed to calculate transformation")
-        
-        #input("\nPress Enter for next test...")

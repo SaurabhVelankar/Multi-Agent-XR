@@ -16,6 +16,7 @@ class LanguageAgent:
         Returns enriched analysis that preserves the original prompt's full context
         for downstream agents to interpret with their specialized knowledge.
         """
+
         # ✅ Build context string from history
         context_str = ""
         if context_history and len(context_history) > 0:
@@ -252,10 +253,9 @@ class LanguageAgent:
             if json_start != -1 and json_end > json_start:
                 json_str = response_text[json_start:json_end]
                 parsed = json.loads(json_str)
-                
-                # Ensure critical fields exist
+
                 if 'original_prompt' not in parsed:
-                    parsed['original_prompt'] = prompt  # ALWAYS preserve this!
+                    parsed['original_prompt'] = prompt
                 
                 if 'command_type' not in parsed:
                     parsed['command_type'] = 'Vague/Complex'  # Safe default
@@ -305,13 +305,12 @@ class LanguageAgent:
         if any(word in prompt_lower for word in ['add', 'delete', 'remove', 'take away']):
             command_type = 'ADD/DELETE'
             primary_action = 'add' if 'add' in prompt_lower else 'remove'
-        
-        # Check for "new" or "another" modifier (even with place/put)
+
         elif any(phrase in prompt_lower for phrase in ['new ', 'another ', 'bring in']):
             command_type = 'ADD/DELETE'
             primary_action = 'add'
         
-        # POS/ROTATE: Move/rotate/position existing objects
+        # POS/ROTATE
         elif any(word in prompt_lower for word in ['move', 'push', 'pull', 'shift', 'place', 'put', 'position']):
             command_type = 'POS/ROTATE'
             primary_action = 'move'
@@ -320,7 +319,7 @@ class LanguageAgent:
             command_type = 'POS/ROTATE'
             primary_action = 'rotate'
         
-        # Vague/Complex: Arrangement or aesthetic goals
+        # Arrangement or aesthetic goals
         elif any(word in prompt_lower for word in ['arrange', 'organize', 'setup', 'make', 'create']):
             command_type = 'Vague/Complex'
             primary_action = 'arrange'
@@ -343,11 +342,11 @@ class LanguageAgent:
         print(f"⚠️ Using fallback parser")
         
         return {
-            'original_prompt': prompt,  # ✅ ALWAYS preserve
+            'original_prompt': prompt, 
             'command_type': command_type,
             'involved_objects': involved_objects,
             'spatial_concepts': spatial_concepts if spatial_concepts else [prompt_lower],
-            'intent_summary': prompt,  # Fallback: use original as summary
+            'intent_summary': prompt,
             'action_hints': {
                 'primary_action': primary_action,
                 'requires_asset_selection': command_type == 'ADD/DELETE',
