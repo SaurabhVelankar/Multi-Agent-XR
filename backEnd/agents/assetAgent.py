@@ -103,6 +103,7 @@ class AssetAgent:
                     "subcategory": metadata["subcategory"],
                     "modelPath": str(relative_path),
                     "default_scale": metadata["default_scale"],
+                    "y_offset": metadata.get("y_offset", 0.0),
                     "properties": metadata["properties"],
                     "typical_dimensions": metadata.get("typical_dimensions"),
                     "default_rotation": metadata.get("default_rotation"),
@@ -384,6 +385,7 @@ class AssetAgent:
             "position": None,  # Scene Agent will set
             "rotation": None,  # Scene Agent will set
             "scale": template["default_scale"].copy(),
+            "y_offset": template.get("y_offset", 0.0),
             "boundingBox": None,  # Scene Agent will calculate
             "properties": template["properties"].copy(),
             "spatialRelations": {

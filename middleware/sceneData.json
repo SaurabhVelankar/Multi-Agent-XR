@@ -150,51 +150,7 @@
     ]
   },
   "objects": [
-    {
-      "id": "ergonomic_chair_01",
-      "name": "ergonomic_chair",
-      "category": "furniture",
-      "subcategory": "seating",
-      "modelPath": "assets/gltf-glb-models/ergonomic_chair/ergonomic_chair.glb",
-      "position": {
-        "x": 0.4,
-        "y": -1,
-        "z": -1.6
-      },
-      "rotation": {
-        "x": 0,
-        "y": -1.5707963267948966,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.5,
-        "y": 0.5,
-        "z": 0.5
-      },
-      "boundingBox": {
-        "min": {
-          "x": 0.3,
-          "y": -1,
-          "z": -1.6
-        },
-        "max": {
-          "x": 0.5,
-          "y": -0.5,
-          "z": -1.4
-        }
-      },
-      "properties": {
-        "movable": true,
-        "interactive": true,
-        "canSitOn": true,
-        "weight": "light"
-      },
-      "spatialRelations": {
-        "on": "floor_01",
-        "rightOf": "table_01",
-        "facing": "left"
-      }
-    }
+    
     
   ],
   "lighting": [

@@ -290,10 +290,25 @@ class Orchestrator:
                 )
                 
                 if pos_data:
-                    new_obj["position"] = pos_data.get("position")
+                    base_position = pos_data.get("position")
+                    y_offset = new_obj.get("y_offset", 0.0)
+                    
+                    adjusted_position = {
+                        "x": base_position["x"],
+                        "y": base_position["y"] + y_offset,
+                        "z": base_position["z"]
+                    }
+                    new_obj["position"] = adjusted_position
                     new_obj["rotation"] = pos_data.get("rotation")
                     
-                    print(f"   ✅ {new_obj['id']} positioned at {new_obj['position']}")
+                    if y_offset != 0.0:
+                        print(f"   ✅ {new_obj['id']} positioned at ({adjusted_position['x']:.2f}, "
+                            f"{adjusted_position['y']:.2f}, {adjusted_position['z']:.2f}) "
+                            f"[y_offset: {y_offset:.2f}]")
+                    else:
+                        print(f"   ✅ {new_obj['id']} positioned at ({adjusted_position['x']:.2f}, "
+                            f"{adjusted_position['y']:.2f}, {adjusted_position['z']:.2f})")
+                    
                     complete_objects.append(new_obj)
                 else:
                     print(f"   ⚠️ No position calculated for {new_obj['id']}")
@@ -328,7 +343,29 @@ class Orchestrator:
                 state["error_message"] = "Spatial calculation failed"
                 state["proposed_placement"] = None
                 return state
+            
+            objects_to_update = []
+            if "objects" in spatial_updates:
+                objects_to_update = spatial_updates["objects"]
+            else:
+                objects_to_update = [spatial_updates]
 
+            # Apply y_offset (modifies in-place)
+            for obj_update in objects_to_update:
+                object_id = obj_update.get("object_id")
+                existing_obj = self.database.get_object_by_id(object_id)
+                if existing_obj and "position" in obj_update:
+                    y_offset = existing_obj.get("y_offset", 0.0)
+                    if y_offset != 0.0:
+                        base_position = obj_update["position"]
+                        adjusted_position = {
+                            "x": base_position["x"],
+                            "y": base_position["y"] + y_offset, 
+                            "z": base_position["z"]
+                        }
+                        obj_update["position"] = adjusted_position
+                        print(f"   🔧 Applied y_offset ({y_offset:.2f}) to {object_id}")
+            
             state["proposed_placement"] = spatial_updates
 
         print(f"✅ Calculated updates\n")
