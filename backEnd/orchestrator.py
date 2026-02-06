@@ -343,7 +343,7 @@ class Orchestrator:
                 state["error_message"] = "Spatial calculation failed"
                 state["proposed_placement"] = None
                 return state
-            
+            '''
             objects_to_update = []
             if "objects" in spatial_updates:
                 objects_to_update = spatial_updates["objects"]
@@ -365,7 +365,7 @@ class Orchestrator:
                         }
                         obj_update["position"] = adjusted_position
                         print(f"   🔧 Applied y_offset ({y_offset:.2f}) to {object_id}")
-            
+            '''
             state["proposed_placement"] = spatial_updates
 
         print(f"✅ Calculated updates\n")

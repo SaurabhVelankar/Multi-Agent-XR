@@ -248,6 +248,19 @@ class SceneAgent:
     {new_objects_context}
     {feedback_context}
 
+    ROTATION RULES:
+    - ONLY update rotation if the command explicitly mentions rotation/orientation:
+      ✅ "rotate chair 90 degrees", "turn table around", "face the window"
+      → update: "rotation": {{"x": 0, "y": 1.57, "z": 0}}
+    
+    - For POSITION-ONLY commands, preserve existing rotation:
+      ✅ "move chair left", "place lamp closer", "shift table forward"
+    
+    - When ADDING new objects with spatial context, you MAY include rotation for logical orientation:
+      ✅ "add chair next to table" → update rotation to face table
+
+    - When command is unclear about rotation, preserves existing rotation
+
     TASK:
     Calculate EXACT position and rotation for the target object(s).
 
@@ -270,8 +283,17 @@ class SceneAgent:
         "object_id": "chair_01",
         "position": {{"x": 0.5, "y": -1.0, "z": -1.5}},
         "rotation": {{"x": 0, "y": 0, "z": 0}},
+        "action": "move",
+        "reasoning": "Moved chair closer"
+    }}
+
+    For SINGLE OBJECT (with rotation):
+    {{
+        "object_id": "chair_01",
+        "position": {{"x": 0.5, "y": -1.0, "z": -1.5}},
+        "rotation": {{"x": 0, "y": 1.57, "z": 0}},
         "action": "place",
-        "reasoning": "Explanation of placement"
+        "reasoning": "Placed and rotated chair to face table"
     }}
 
     For MULTIPLE OBJECTS:

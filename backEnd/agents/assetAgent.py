@@ -169,7 +169,7 @@ class AssetAgent:
         
         result = []
 
-        pattern = r'(\d+|one|two|three|four|five|six|seven|eight|nine|ten|a|an)\s+(\w+)'
+        pattern = r'(\d+|one|two|three|four|five|six|seven|eight|nine|ten|a|an)\b'
         
         matches = re.findall(pattern, prompt.lower())
         
@@ -178,35 +178,26 @@ class AssetAgent:
             'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
             'a': 1, 'an': 1
         }
-        
+        quantities = []
         # Process matches
-        for num_word, obj_word in matches:
+        for num_word in matches:
             if num_word.isdigit():
-                quantity = int(num_word)
+                quantities.append(int(num_word))
             else:
-                quantity = word_to_num.get(num_word, 1)
+                 quantities.append(word_to_num.get(num_word, 1))
             
             # Check if this object word matches any involved_objects
             # Handle plurals: "lamps" → "lamp", "chairs" → "chair"
-            obj_singular = obj_word.rstrip('s')
+        for i, obj in enumerate(involved_objects):
+            if i < len(quantities):
+                quantity = quantities[i]
+            else:
+                quantity = 1  # Default if not enough numbers
             
-            for known_obj in involved_objects:
-                known_singular = known_obj.rstrip('s')
-                
-                if obj_singular == known_singular or obj_word == known_obj:
-                    result.append({
-                        "object": known_obj,
-                        "quantity": quantity
-                    })
-                    break
-        
-        # Fallback: if no matches found, assume 1 of each involved object
-        if not result:
-            for obj in involved_objects:
-                result.append({
-                    "object": obj,
-                    "quantity": 1
-                })
+            result.append({
+                "object": obj,
+                "quantity": quantity
+            })
         
         return result
     
@@ -423,7 +414,6 @@ class AssetAgent:
                 self.pending_objects = []
                 original_prompt = parsed_command.get("original_prompt", "")
                 object_quantities = self._extract_object_quantities(original_prompt, involved_objects)
-            
                 print(f"   📋 Parsed quantities: {object_quantities}")
                 new_objects = []
 
